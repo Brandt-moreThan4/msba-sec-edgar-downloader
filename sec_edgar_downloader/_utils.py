@@ -36,6 +36,7 @@ FilingMetadata = namedtuple(
         "full_submission_url",
         "filing_details_url",
         "filing_details_filename",
+        "period_end_date",
     ],
 )
 
@@ -90,6 +91,7 @@ def build_filing_metadata_from_hit(hit: dict) -> FilingMetadata:
     # the CIKs of executives carrying out insider transactions like in form 4.
     cik = hit["_source"]["ciks"][-1]
     accession_number_no_dashes = accession_number.replace("-", "", 2)
+    period_ending_date = hit['_source']['period_ending']
 
     submission_base_url = (
         f"{SEC_EDGAR_ARCHIVES_BASE_URL}/{cik}/{accession_number_no_dashes}"
@@ -124,6 +126,7 @@ def build_filing_metadata_from_hit(hit: dict) -> FilingMetadata:
         full_submission_url=full_submission_url,
         filing_details_url=filing_details_url,
         filing_details_filename=filing_details_filename,
+        period_end_date = period_ending_date,
     )
 
 
@@ -244,6 +247,7 @@ def download_and_save_filing(
     filing_type: str,
     download_url: str,
     save_filename: str,
+    period_end_date: str,
     *,
     resolve_urls: bool = False,
 ) -> None:
@@ -269,6 +273,13 @@ def download_and_save_filing(
         / accession_number
         / save_filename
     )
+
+    save_path = download_folder / ROOT_SAVE_FOLDER_NAME / (f'{ticker_or_cik}_{period_end_date}_{filing_type}_{accession_number}_{save_filename}')
+
+    # save_path = save_path.parent / save_path.stem / save_path.suffix
+
+
+
     save_path.parent.mkdir(parents=True, exist_ok=True)
     save_path.write_bytes(filing_text)
 
@@ -288,21 +299,21 @@ def download_filings(
     client.mount("https://", HTTPAdapter(max_retries=retries))
     try:
         for filing in filings_to_fetch:
-            try:
-                download_and_save_filing(
-                    client,
-                    download_folder,
-                    ticker_or_cik,
-                    filing.accession_number,
-                    filing_type,
-                    filing.full_submission_url,
-                    FILING_FULL_SUBMISSION_FILENAME,
-                )
-            except requests.exceptions.HTTPError as e:  # pragma: no cover
-                print(
-                    "Skipping full submission download for "
-                    f"'{filing.accession_number}' due to network error: {e}."
-                )
+            # try:
+            #     download_and_save_filing(
+            #         client,
+            #         download_folder,
+            #         ticker_or_cik,
+            #         filing.accession_number,
+            #         filing_type,
+            #         filing.full_submission_url,
+            #         FILING_FULL_SUBMISSION_FILENAME,
+            #     )
+            # except requests.exceptions.HTTPError as e:  # pragma: no cover
+            #     print(
+            #         "Skipping full submission download for "
+            #         f"'{filing.accession_number}' due to network error: {e}."
+            #     )
 
             if include_filing_details:
                 try:
@@ -315,6 +326,7 @@ def download_filings(
                         filing.filing_details_url,
                         filing.filing_details_filename,
                         resolve_urls=True,
+                        period_end_date = filing.period_end_date,
                     )
                 except requests.exceptions.HTTPError as e:  # pragma: no cover
                     print(
