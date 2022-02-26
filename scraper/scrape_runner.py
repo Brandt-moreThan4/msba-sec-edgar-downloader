@@ -2,8 +2,11 @@ import pandas as pd
 from pathlib import Path
 import sys
 
+
+# This is sloppy, but I don't know how to fix it yet.
 sys.path.append(r'C:\Users\User\OneDrive\Desktop\Code\msba_edgar')
 from sec_edgar_downloader import Downloader
+
 
 
 # company_df = pd.read_csv('scrape/stocklist_24022022.csv')
@@ -12,6 +15,7 @@ filing_types = ['10-K','10-Q']
 tickers = ['AMZN', 'MSFT']
 tickers = ['EIX', 'NRG','WMB', 'SWN','DPL']
 # tickers = ['AMZN','MSFT']
+
 tickers = ['AMZN']
 
 
@@ -21,6 +25,8 @@ start_date = "2018-01-31"
 end_date = "2021-01-01"
 
 downloader = Downloader("scraper")
+
+
 
 
 for ticker in tickers:
@@ -33,7 +39,7 @@ for ticker in tickers:
 
 
 
-print('hahah')
 
+print('hahah')
 print('hoooooooo')
 
