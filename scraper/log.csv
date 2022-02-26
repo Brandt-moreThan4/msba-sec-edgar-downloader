@@ -1,5 +1,0 @@
-,ticker,cik,filing_type,period_end,file_name,url,success
-0,AMZN,0001018724,AMZN,2019-12-31,C:\Users\User\OneDrive\Desktop\Code\msba_edgar\scraper\sec-edgar-filings\AMZN_2019-12-31_10-K_0001018724-20-000004_filing-details.html,https://www.sec.gov/Archives/edgar/data/0001018724/000101872420000004/amzn-20191231x10k.htm,True
-1,AMZN,0001018724,AMZN,2020-09-30,C:\Users\User\OneDrive\Desktop\Code\msba_edgar\scraper\sec-edgar-filings\AMZN_2020-09-30_10-Q_0001018724-20-000030_filing-details.html,https://www.sec.gov/Archives/edgar/data/0001018724/000101872420000030/amzn-20200930.htm,True
-2,AMZN,0001018724,AMZN,2020-06-30,C:\Users\User\OneDrive\Desktop\Code\msba_edgar\scraper\sec-edgar-filings\AMZN_2020-06-30_10-Q_0001018724-20-000021_filing-details.html,https://www.sec.gov/Archives/edgar/data/0001018724/000101872420000021/amzn-20200630.htm,True
-3,AMZN,0001018724,AMZN,2020-03-31,C:\Users\User\OneDrive\Desktop\Code\msba_edgar\scraper\sec-edgar-filings\AMZN_2020-03-31_10-Q_0001018724-20-000010_filing-details.html,https://www.sec.gov/Archives/edgar/data/0001018724/000101872420000010/amzn-20200331x10q.htm,True
