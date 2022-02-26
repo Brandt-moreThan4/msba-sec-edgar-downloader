@@ -189,6 +189,7 @@ class Downloader:
         self,
         filing: str,
         ticker_or_cik: str,
+        log_dict: dict,
         *,
         amount: Optional[int] = None,
         after: Optional[str] = None,
@@ -213,9 +214,8 @@ class Downloader:
             parseable filing detail documents (e.g. form 4 XML, 8-K HTML). Defaults to True.
         :param query: keyword to search for in filing documents.
         :return: number of filings downloaded.
-
-
         """
+
         ticker_or_cik = str(ticker_or_cik).strip().upper()
 
         # Check for blank tickers or CIKs
@@ -292,6 +292,7 @@ class Downloader:
             filing,
             filings_to_fetch,
             download_details,
+            log_dict,
         )
 
         # Get number of unique accession numbers downloaded

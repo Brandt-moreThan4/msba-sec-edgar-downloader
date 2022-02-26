@@ -37,6 +37,7 @@ FilingMetadata = namedtuple(
         "filing_details_url",
         "filing_details_filename",
         "period_end_date",
+        "cik",
     ],
 )
 
@@ -82,6 +83,7 @@ def form_request_payload(
         "from": start_index,
         "q": query,
     }
+
     return payload
 
 
@@ -99,18 +101,7 @@ def build_filing_metadata_from_hit(hit: dict) -> FilingMetadata:
 
     full_submission_url = f"{submission_base_url}/{accession_number}.txt"
 
-    # Get XSL if human readable is wanted
-    # XSL is required to download the human-readable
-    # and styled version of XML documents like form 4
-    # SEC_EDGAR_ARCHIVES_BASE_URL + /320193/000032019320000066/wf-form4_159839550969947.xml
-    # SEC_EDGAR_ARCHIVES_BASE_URL +
-    #           /320193/000032019320000066/xslF345X03/wf-form4_159839550969947.xml
-
-    # xsl = hit["_source"]["xsl"]
-    # if xsl is not None:
-    #     filing_details_url = f"{submission_base_url}/{xsl}/{filing_details_filename}"
-    # else:
-    #     filing_details_url = f"{submission_base_url}/{filing_details_filename}"
+    
 
     filing_details_url = f"{submission_base_url}/{filing_details_filename}"
 
@@ -127,6 +118,7 @@ def build_filing_metadata_from_hit(hit: dict) -> FilingMetadata:
         filing_details_url=filing_details_url,
         filing_details_filename=filing_details_filename,
         period_end_date = period_ending_date,
+        cik=cik
     )
 
 
@@ -139,6 +131,7 @@ def get_filing_urls_to_download(
     include_amends: bool,
     query: str = "",
 ) -> List[FilingMetadata]:
+
     filings_to_fetch: List[FilingMetadata] = []
     start_index = 0
 
@@ -251,6 +244,7 @@ def download_and_save_filing(
     *,
     resolve_urls: bool = False,
 ) -> None:
+    """This"""
     headers = {
         "User-Agent": generate_random_user_agent(),
         "Accept-Encoding": "gzip, deflate",
@@ -265,19 +259,8 @@ def download_and_save_filing(
         filing_text = resolve_relative_urls_in_filing(filing_text, download_url)
 
     # Create all parent directories as needed and write content to file
-    save_path = (
-        download_folder
-        / ROOT_SAVE_FOLDER_NAME
-        / ticker_or_cik
-        / filing_type
-        / accession_number
-        / save_filename
-    )
 
     save_path = download_folder / ROOT_SAVE_FOLDER_NAME / (f'{ticker_or_cik}_{period_end_date}_{filing_type}_{accession_number}_{save_filename}')
-
-    # save_path = save_path.parent / save_path.stem / save_path.suffix
-
 
 
     save_path.parent.mkdir(parents=True, exist_ok=True)
@@ -293,28 +276,13 @@ def download_filings(
     filing_type: str,
     filings_to_fetch: List[FilingMetadata],
     include_filing_details: bool,
+    log_dict:dict,
 ) -> None:
     client = requests.Session()
     client.mount("http://", HTTPAdapter(max_retries=retries))
     client.mount("https://", HTTPAdapter(max_retries=retries))
     try:
         for filing in filings_to_fetch:
-            # try:
-            #     download_and_save_filing(
-            #         client,
-            #         download_folder,
-            #         ticker_or_cik,
-            #         filing.accession_number,
-            #         filing_type,
-            #         filing.full_submission_url,
-            #         FILING_FULL_SUBMISSION_FILENAME,
-            #     )
-            # except requests.exceptions.HTTPError as e:  # pragma: no cover
-            #     print(
-            #         "Skipping full submission download for "
-            #         f"'{filing.accession_number}' due to network error: {e}."
-            #     )
-
             if include_filing_details:
                 try:
                     download_and_save_filing(
@@ -328,11 +296,30 @@ def download_filings(
                         resolve_urls=True,
                         period_end_date = filing.period_end_date,
                     )
+
+                    log_dict['ticker'].append(ticker_or_cik)
+                    log_dict['cik'].append(filing.cik)
+                    log_dict['period_end'].append(filing.period_end_date)
+                    log_dict['filing_type'].append(filing_type)
+                    log_dict['url'].append(filing.filing_details_url)
+                    log_dict['success'].append(True)
+                    log_dict['file_name'].append(download_folder / ROOT_SAVE_FOLDER_NAME / (f'{ticker_or_cik}_{filing.period_end_date}_{filing_type}_{filing.accession_number}_{filing.filing_details_filename}'))
+                    
+
                 except requests.exceptions.HTTPError as e:  # pragma: no cover
                     print(
                         f"Skipping filing detail download for "
                         f"'{filing.accession_number}' due to network error: {e}."
                     )
+
+                    log_dict['ticker'].append(ticker_or_cik)
+                    log_dict['cik'].append(filing.cik)
+                    log_dict['period_end'].append(filing.period_end_date)
+                    log_dict['filing_type'].append(filing_type)
+                    log_dict['url'].append(filing.filing_details_url)
+                    log_dict['success'].append(False)
+                    log_dict['file_name'].append(download_folder / ROOT_SAVE_FOLDER_NAME / (f'{ticker_or_cik}_{filing.period_end_date}_{filing_type}_{filing.accession_number}_{filing.filing_details_filename}'))
+
     finally:
         client.close()
 
