@@ -23,7 +23,7 @@ setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.7",
     ],
-    packages=["reader"],
+    packages=["ut_msba_edgar_scraper"],
     include_package_data=True,
     install_requires=["pandas"],
 )
