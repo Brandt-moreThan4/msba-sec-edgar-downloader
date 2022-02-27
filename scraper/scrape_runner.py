@@ -10,7 +10,7 @@ import pandas as pd
 # This is sloppy, but I don't know how to fix it yet.
 # This just needs to be the path to the folder that all of this code is stored in. 
 sys.path.append(r'C:\Users\User\OneDrive\Desktop\Code\msba_edgar')
-from sec_edgar_downloader import Downloader
+from ut_msba_edgar_scraper import Downloader
 
 
 filing_types = ['10-K','10-Q']
