@@ -1,4 +1,5 @@
 from importlib.resources import path
+from turtle import down
 import pandas as pd
 from pathlib import Path
 import sys
@@ -33,7 +34,8 @@ for ticker in tickers:
     for filing_type in filing_types:
         # Add a try/except here
         try:
-            downloader.get2(filing_type, ticker, after=start_date, before=end_date,log_dict=log_dict)
+            # downloader.get2(filing_type, ticker, after=start_date, before=end_date,log_dict=log_dict)
+            print(downloader.get_download_folder())
         except:
             print(f'Failed somewhere for: {ticker}-{filing_type}')
             failed_lookups.append([ticker,filing_type])

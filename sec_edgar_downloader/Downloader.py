@@ -37,6 +37,9 @@ class Downloader:
         else:
             self.download_folder = Path(download_folder).expanduser().resolve()
 
+    def get_download_folder(self):
+        return self.download_folder
+
     def get(
         self,
         filing: str,
@@ -297,3 +300,4 @@ class Downloader:
 
         # Get number of unique accession numbers downloaded
         return get_number_of_unique_filings(filings_to_fetch)
+
