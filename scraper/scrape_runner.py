@@ -15,10 +15,10 @@ from sec_edgar_downloader import Downloader
 filing_types = ['10-K','10-Q']
 tickers = ['EIX', 'NRG','WMB', 'SWN','DPL']
 tickers = ['JPM', 'DIS','V']
-# tickers = ['TREC']
+tickers = ['TREC']
 
 start_date = "2000-01-01"
-start_date = "2018-01-01"
+start_date = "2019-01-01"
 end_date = "2021-01-01"
 
 downloader = Downloader("scraper")
@@ -40,7 +40,6 @@ for ticker in tickers:
 
 
 # Save the log to a csv
-
 df_log = pd.DataFrame(log_dict)
 log_path = Path() / 'scraper' / 'logs' / f'log_{str(datetime.datetime.now()).replace(" ","-").replace(":","_")}.csv'
 
