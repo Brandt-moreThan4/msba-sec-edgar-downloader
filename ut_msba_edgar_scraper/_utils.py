@@ -137,7 +137,8 @@ def get_filing_urls_to_download(
 
     client = requests.Session()
     client.mount("http://", HTTPAdapter(max_retries=retries))
-    client.mount("https://", HTTPAdapter(max_retries=retries))
+    client.mount("https://", HTTPAdapter(max_retries=retries)) # Redundant? Delete this
+    
     try:
         while len(filings_to_fetch) < num_filings_to_download:
             payload = form_request_payload(

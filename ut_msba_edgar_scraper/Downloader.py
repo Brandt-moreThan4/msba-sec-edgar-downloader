@@ -301,3 +301,8 @@ class Downloader:
         # Get number of unique accession numbers downloaded
         return get_number_of_unique_filings(filings_to_fetch)
 
+
+    def get_report(self, filing_type: str,ticker_or_cik: str, log_dict: dict, before_date: Optional[str] = None, include_amends: bool = False,
+                   download_details: bool = True, query: str = ""):
+
+        pass
