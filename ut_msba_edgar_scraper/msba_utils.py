@@ -2,7 +2,7 @@
 import pandas as pd
 from pathlib import Path
 
-# Import the data set. This should probably be moves to the INIT somehow?
+# Import the lookup data set. This should probably be moved to the INIT somehow?
 
 folder_path = Path(__file__).parent
 data_path = folder_path / 'company_data.csv'

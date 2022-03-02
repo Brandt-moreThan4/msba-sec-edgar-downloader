@@ -16,6 +16,12 @@ startTime = time.time()
 sys.path.append(r'C:\Users\User\OneDrive\Desktop\Code\msba_edgar')
 from ut_msba_edgar_scraper import Downloader
 
+from ut_msba_edgar_scraper.msba_utils import get_cik, get_ticker 
+
+
+# print(get_cik('8264','2004-01-01'))
+# print(get_cik('8264','2004-01-01'))
+# print(get_cik('8264','2004-01-01'))
 
 filing_types = ['10-K','10-Q']
 
@@ -25,27 +31,21 @@ start_date = "2018-01-01"
 end_date = "2021-01-01"
 
 # This block is mainly used to get the cik-gvkey mapping
-stock_mapping_df = pd.read_csv('scraper/company_data.csv')
-stock_mapping_df['datadate'] = pd.to_datetime(stock_mapping_df['datadate'])
-stock_mapping_df = stock_mapping_df[stock_mapping_df.datadate >='2000-01-01']
-stock_mapping_df = stock_mapping_df.dropna()
-stock_mapping_df['gvkey'] = stock_mapping_df['gvkey'].astype(str) 
-stock_mapping_df['cik'] = stock_mapping_df['cik'].astype(int).astype(str)
+stock_df = pd.read_csv('scraper/scraping_universe.csv') # pd.read_csv('scraper/company_data.csv')
+stock_df['datadate'] = pd.to_datetime(stock_df['datadate'])
+stock_df = stock_df[stock_df.datadate >='2000-01-01']
+stock_df = stock_df.dropna()
+stock_df['gvkey'] = stock_df['gvkey'].astype(str) 
+stock_df['cik'] = stock_df['cik'].astype(int).astype(str)
+
 
 # Only look at energy sector companies
-energy_df = stock_mapping_df[stock_mapping_df['gsector'] == 10]
-energy_df = energy_df[energy_df.datadate >= start_date]
+# energy_df = stock_df[stock_df['gsector'] == 10]
+# energy_df = energy_df[energy_df.datadate >= start_date]
+# ciks = list(energy_df['cik'].unique())
 
-# Grab first 200 ciks
-ciks = list(energy_df['cik'].unique())
-# print(len(ciks))
-
-
-def get_cik(gvkey:str, date:str) -> str:
-    """Send in a gvkey string, and this will return the cik associated with that Date in formate YYYY-MM-DD"""
-    filtered_df = stock_mapping_df[(stock_mapping_df.gvkey == gvkey) & (stock_mapping_df.datadate <= date) ]
-    ciks = list(filtered_df.cik.unique())
-    return ciks[-1] # Returns the last cik. Just in case there are multiple, which there shouldn't be
+ciks = list(stock_df['cik'].unique())
+print(len(ciks))
 
 
 
