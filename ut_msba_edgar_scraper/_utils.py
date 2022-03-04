@@ -38,6 +38,7 @@ FilingMetadata = namedtuple(
         "filing_details_filename",
         "period_end_date",
         "cik",
+        "edgar_name",
     ],
 )
 
@@ -46,6 +47,7 @@ fake = Faker()
 
 # Specify max number of request retries
 # https://stackoverflow.com/a/35504626/3820660
+
 retries = Retry(
     total=MAX_RETRIES,
     backoff_factor=SEC_EDGAR_RATE_LIMIT_SLEEP_INTERVAL,
@@ -100,17 +102,10 @@ def build_filing_metadata_from_hit(hit: dict) -> FilingMetadata:
     )
 
     full_submission_url = f"{submission_base_url}/{accession_number}.txt"
-
-    
-
     filing_details_url = f"{submission_base_url}/{filing_details_filename}"
 
-    filing_details_filename_extension = Path(filing_details_filename).suffix.replace(
-        "htm", "html"
-    )
-    filing_details_filename = (
-        f"{FILING_DETAILS_FILENAME_STEM}{filing_details_filename_extension}"
-    )
+    filing_details_filename_extension = Path(filing_details_filename).suffix.replace( "htm", "html")
+    filing_details_filename = (f"{FILING_DETAILS_FILENAME_STEM}{filing_details_filename_extension}")
 
     return FilingMetadata(
         accession_number=accession_number,
@@ -196,6 +191,8 @@ def get_filing_urls_to_download(
                     continue
 
                 metadata = build_filing_metadata_from_hit(hit)
+                5# Add edgar name here like metadata.edgar_name = 
+                
                 filings_to_fetch.append(metadata)
 
                 if len(filings_to_fetch) == num_filings_to_download:
@@ -206,7 +203,7 @@ def get_filing_urls_to_download(
             query_size = search_query_results["query"]["size"]
             start_index += query_size
 
-            # Prevent rate limiting
+            # Prevent rate limiting & don't be a dick to Edgar's website
             time.sleep(SEC_EDGAR_RATE_LIMIT_SLEEP_INTERVAL)
     finally:
         client.close()
@@ -215,6 +212,7 @@ def get_filing_urls_to_download(
 
 
 def resolve_relative_urls_in_filing(filing_text: str, download_url: str) -> str:
+
     soup = BeautifulSoup(filing_text, "lxml")
     base_url = f"{download_url.rsplit('/', 1)[0]}/"
 
@@ -245,12 +243,17 @@ def download_and_save_filing(
     *,
     resolve_urls: bool = False,
 ) -> None:
+
     """This"""
+
+    # header is needed to declare who you are to Edgar's server
     headers = {
         "User-Agent": generate_random_user_agent(),
         "Accept-Encoding": "gzip, deflate",
         "Host": "www.sec.gov",
     }
+
+    # This is what actually downloads the html from Edgar
     resp = client.get(download_url, headers=headers)
     resp.raise_for_status()
     filing_text = resp.content
@@ -259,15 +262,17 @@ def download_and_save_filing(
     if resolve_urls and Path(save_filename).suffix == ".html":
         filing_text = resolve_relative_urls_in_filing(filing_text, download_url)
 
-    # Create all parent directories as needed and write content to file
 
+    # Create all parent directories as needed and write content to file
     save_path = download_folder / ROOT_SAVE_FOLDER_NAME / (f'{ticker_or_cik}_{period_end_date}_{filing_type}_{accession_number}_{save_filename}')
 
-
+    # If the directory doesn't exists, create it.
     save_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Save the document to a folder
     save_path.write_bytes(filing_text)
 
-    # Prevent rate limiting
+    # Prevent rate limiting and don't be a dick to edgar
     time.sleep(SEC_EDGAR_RATE_LIMIT_SLEEP_INTERVAL)
 
 
@@ -279,12 +284,24 @@ def download_filings(
     include_filing_details: bool,
     log_dict:dict,
 ) -> None:
+
     client = requests.Session()
     client.mount("http://", HTTPAdapter(max_retries=retries))
     client.mount("https://", HTTPAdapter(max_retries=retries))
+
     try:
         for filing in filings_to_fetch:
-            if include_filing_details:
+            if include_filing_details: # This is redundant since we always include file details. Delete this at some point
+
+                save_file_path = download_folder / ROOT_SAVE_FOLDER_NAME / (f'{ticker_or_cik}_{filing.period_end_date}_{filing_type}_{filing.accession_number}_{filing.filing_details_filename}')
+
+                log_dict['ticker'].append(ticker_or_cik)
+                log_dict['cik'].append(filing.cik)
+                log_dict['period_end'].append(filing.period_end_date)
+                log_dict['filing_type'].append(filing_type)
+                log_dict['url'].append(filing.filing_details_url)
+                log_dict['file_name'].append(save_file_path.absolute()) # This actually only would make sense if it is a success
+
                 try:
                     download_and_save_filing(
                         client,
@@ -298,28 +315,17 @@ def download_filings(
                         period_end_date = filing.period_end_date,
                     )
 
-                    log_dict['ticker'].append(ticker_or_cik)
-                    log_dict['cik'].append(filing.cik)
-                    log_dict['period_end'].append(filing.period_end_date)
-                    log_dict['filing_type'].append(filing_type)
-                    log_dict['url'].append(filing.filing_details_url)
                     log_dict['success'].append(True)
-                    log_dict['file_name'].append(download_folder / ROOT_SAVE_FOLDER_NAME / (f'{ticker_or_cik}_{filing.period_end_date}_{filing_type}_{filing.accession_number}_{filing.filing_details_filename}'))
                     
-
+                    
                 except requests.exceptions.HTTPError as e:  # pragma: no cover
                     print(
                         f"Skipping filing detail download for "
                         f"'{filing.accession_number}' due to network error: {e}."
                     )
 
-                    log_dict['ticker'].append(ticker_or_cik)
-                    log_dict['cik'].append(filing.cik)
-                    log_dict['period_end'].append(filing.period_end_date)
-                    log_dict['filing_type'].append(filing_type)
-                    log_dict['url'].append(filing.filing_details_url)
                     log_dict['success'].append(False)
-                    log_dict['file_name'].append(download_folder / ROOT_SAVE_FOLDER_NAME / (f'{ticker_or_cik}_{filing.period_end_date}_{filing_type}_{filing.accession_number}_{filing.filing_details_filename}'))
+
 
     finally:
         client.close()

@@ -43,7 +43,6 @@ class Downloader:
         return self.download_folder
 
 
-
     def get2(
         self,
         filing: str,
@@ -80,10 +79,6 @@ class Downloader:
             ticker_or_cik = get_cik(ticker_or_cik)
 
         ticker_or_cik = str(ticker_or_cik).strip().upper()
-
-        # Check for blank tickers or CIKs
-        if not ticker_or_cik:
-            raise ValueError("Invalid ticker or CIK. Please enter a non-blank value.")
 
         # Detect CIKs and ensure that they are properly zero-padded
         if is_cik(ticker_or_cik):

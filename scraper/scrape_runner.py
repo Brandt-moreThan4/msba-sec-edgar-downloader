@@ -1,3 +1,4 @@
+from cv2 import CHAIN_APPROX_TC89_KCOS
 import pandas as pd
 from pathlib import Path
 import sys
@@ -26,8 +27,9 @@ from ut_msba_edgar_scraper.msba_utils import get_cik, get_ticker
 filing_types = ['10-K','10-Q']
 
 
+
 start_date = "2000-01-01"
-start_date = "2018-01-01"
+start_date = "2019-01-01"
 end_date = "2021-01-01"
 
 # This block is mainly used to get the cik-gvkey mapping
@@ -52,11 +54,11 @@ print(len(ciks))
 ciks = ['19617']
 # ciks = ['0000019617']
 # ciks = [cik.rjust(10,'0') for cik in ciks]
-
+# ciks = ['aapl']
+ciks = ['320193']
 
 
 downloader = Downloader("scraper")
-
 
 log_dict: dict = {'ticker':[],'cik':[],'filing_type':[],'period_end':[],'file_name':[],'url':[],'success':[]}
 failed_lookups = []
@@ -71,7 +73,7 @@ for ticker in ciks:
             print(f'Failed somewhere for: {ticker}-{filing_type}')
             failed_lookups.append([ticker,filing_type])
 
-
+        print('ha')
 
 # Save the log to a csv
 df_log = pd.DataFrame(log_dict)

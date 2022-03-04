@@ -16,6 +16,8 @@ stock_mapping_df['gvkey'] = stock_mapping_df['gvkey'].astype(str)
 stock_mapping_df['cik'] = stock_mapping_df['cik'].astype(int).astype(str)
 
 
+# We could speed up the below functions by making it a lookup instead of filters
+
 def get_ticker(gvkey:str, date:str) -> str:
     """Send in a gvkey string, and this will return the cik associated with that Date in formate YYYY-MM-DD"""
     filtered_df = stock_mapping_df[(stock_mapping_df.gvkey == gvkey) & (stock_mapping_df.datadate <= date) ]
