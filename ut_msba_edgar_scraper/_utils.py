@@ -29,8 +29,6 @@ class EdgarSearchApiError(Exception):
     """Error raised when Edgar Search API encounters a problem."""
 
 
-# Object for storing metadata about filings that will be downloaded.
-
 class Filing:
 
     def __init__(self) -> None:
@@ -80,6 +78,54 @@ class Filing:
 
             # If path does not exists
             self.save_path.write_bytes(filing_text)
+
+            # Prevent rate limiting and don't be a dick to edgar
+            time.sleep(SEC_EDGAR_RATE_LIMIT_SLEEP_INTERVAL)
+
+
+    def download_and_save_filing_to_drive(
+        self,
+        client: requests.Session,
+        resolve_urls: bool = True,
+        overwrite:bool= True, # Change this default to False later on
+    ) -> None:
+
+        """This"""
+
+        # Check to see if the file is already in google drive or if overwrite is ok
+
+        if overwrite:
+            # If so, then do this good stuff
+            # header is needed to declare who you are to Edgar's server
+            headers = {
+                "User-Agent": generate_random_user_agent(),
+                "Accept-Encoding": "gzip, deflate",
+                "Host": "www.sec.gov",
+            }
+
+            # This is what actually downloads the html from Edgar
+            resp = client.get(self.filing_details_url, headers=headers)
+            resp.raise_for_status()
+            filing_text = resp.content
+
+             # Only resolve URLs in HTML files
+            if resolve_urls and self.save_path.suffix == ".html":
+                filing_text = resolve_relative_urls_in_filing(filing_text, self.filing_details_url)
+
+            # ------------------- INSERT Google Drive Upload Block here -----------------------------
+
+            # from pydrive.drive import GoogleDrive
+
+            # # Create GoogleDrive instance with authenticated GoogleAuth instance.
+            # drive = GoogleDrive(gauth)
+
+            # # Create GoogleDriveFile instance with title 'Hello.txt'.
+            # file1 = drive.CreateFile({'title': 'Hello.txt'})
+            # file1.Upload() # Upload the file.
+            # print('title: %s, id: %s' % (file1['title'], file1['id']))
+            # # title: Hello.txt, id: {{FILE_ID}}
+
+            # -------------------
 
             # Prevent rate limiting and don't be a dick to edgar
             time.sleep(SEC_EDGAR_RATE_LIMIT_SLEEP_INTERVAL)
