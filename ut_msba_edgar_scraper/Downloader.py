@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 from typing import ClassVar, List, Optional, Union
 
-from ._constants import DATE_FORMAT_TOKENS, DEFAULT_AFTER_DATE, DEFAULT_BEFORE_DATE
+from ._constants import DATE_FORMAT_TOKENS, DEFAULT_AFTER_DATE, DEFAULT_BEFORE_DATE, ROOT_SAVE_FOLDER_NAME
 from ._constants import SUPPORTED_FILINGS as _SUPPORTED_FILINGS
 from ._utils import (download_filings, get_filing_urls_to_download, get_number_of_unique_filings, is_cik, validate_date_format)
 
@@ -45,7 +45,7 @@ class Downloader:
 
     def get2(
         self,
-        filing: str,
+        filing_type: str,
         ticker_or_cik: str,
         log_dict: dict,
         *,
@@ -53,7 +53,6 @@ class Downloader:
         after: Optional[str] = None,
         before: Optional[str] = None,
         include_amends: bool = False,
-        download_details: bool = True,
         query: str = "",
         is_gvkey=False,
     ) -> int:
@@ -124,7 +123,7 @@ class Downloader:
                 "Please enter an after date that is less than the before date."
             )
 
-        if filing not in _SUPPORTED_FILINGS:
+        if filing_type not in _SUPPORTED_FILINGS:
             filing_options = ", ".join(self.supported_filings)
             raise ValueError(
                 f"'{filing}' filings are not supported. "
@@ -135,7 +134,7 @@ class Downloader:
             raise TypeError("Query must be of type string.")
 
         filings_to_fetch = get_filing_urls_to_download(
-            filing,
+            filing_type,
             ticker_or_cik,
             amount,
             after,
@@ -144,13 +143,16 @@ class Downloader:
             query,
         )
 
-        download_filings( # Update this to get rid of filing
-            self.download_folder,
-            ticker_or_cik,
-            filing,
-            filings_to_fetch,
-            log_dict,
-        )
+
+        # Make the assumption that by the time we get here, we will onnly be looking at ciks, not tickers
+        for filing in filings_to_fetch:
+            filing.report_type = filing_type
+            filing.file_name = (f'{ticker_or_cik}_{filing.period_end_date}_{filing.report_type}_{filing.accession_number}.html')
+            filing.save_path = self.download_folder / ROOT_SAVE_FOLDER_NAME / filing.file_name
+            # Add code here to inseret ticker?
+            
+            
+        download_filings(filings_to_fetch, log_dict)
 
         # Get number of unique accession numbers downloaded
         return get_number_of_unique_filings(filings_to_fetch)
