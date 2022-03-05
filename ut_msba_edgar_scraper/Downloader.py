@@ -57,7 +57,7 @@ class Downloader:
         query: str = "",
         is_gvkey=False,
     ) -> int:
-        """ADD DESCRIPTION HERE
+        """ ADD DESCRIPTION HERE
 
         :param filing: filing type to download (e.g. 8-K).
         :param ticker_or_cik: ticker or CIK to download filings for.
@@ -144,12 +144,11 @@ class Downloader:
             query,
         )
 
-        download_filings(
+        download_filings( # Update this to get rid of filing
             self.download_folder,
             ticker_or_cik,
             filing,
             filings_to_fetch,
-            download_details,
             log_dict,
         )
 

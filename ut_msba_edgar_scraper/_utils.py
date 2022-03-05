@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import List
 from urllib.parse import urljoin
+from importlib_metadata import metadata
 
 import requests
 from bs4 import BeautifulSoup
@@ -29,18 +30,34 @@ class EdgarSearchApiError(Exception):
 
 
 # Object for storing metadata about filings that will be downloaded.
-FilingMetadata = namedtuple(
-    "FilingMetadata",
-    [
-        "accession_number",
-        "full_submission_url",
-        "filing_details_url",
-        "filing_details_filename",
-        "period_end_date",
-        "cik",
-        "edgar_name",
-    ],
-)
+
+class Filing:
+
+    def __init__(self) -> None:
+        self.accession_number = None
+        self.full_submission_url = None
+        self.filing_details_url = None
+        self.filing_details_filename = None
+        self.period_end_date = None
+        self.cik = None
+        self.edgar_name = None
+        self.save_path = None
+        self.report_type = None
+
+
+
+# fields = [
+#         "accession_number",
+#         "full_submission_url",
+#         "filing_details_url",
+#         "filing_details_filename",
+#         "period_end_date",
+#         "cik",
+#         "edgar_name",
+#         'save_path',
+#     ]
+
+# FilingMetadata = namedtuple("FilingMetadata",fields, defaults=(None,)* len(fields))
 
 # Object for generating fake user-agent strings
 fake = Faker()
@@ -89,32 +106,77 @@ def form_request_payload(
     return payload
 
 
-def build_filing_metadata_from_hit(hit: dict) -> FilingMetadata:
-    accession_number, filing_details_filename = hit["_id"].split(":", 1)
+# def build_filing_metadata_from_hit(hit: dict) -> FilingMetadata:
+
+#     # The "_id" items contains the important detail we need to figure out the url
+#     accession_number, filing_details_filename = hit["_id"].split(":", 1)
+
+#     # Company CIK should be last in the CIK list. This list may also include
+#     # the CIKs of executives carrying out insider transactions like in form 4.
+#     cik = hit["_source"]["ciks"][-1]
+#     accession_number_no_dashes = accession_number.replace("-", "", 2) # We need the accession number without dashes to build url below
+#     period_ending_date = hit['_source']['period_ending']
+#     edgar_name = hit["_source"]['display_names'][-1] # This contains a list of display names
+
+
+#     submission_base_url = (f"{SEC_EDGAR_ARCHIVES_BASE_URL}/{cik}/{accession_number_no_dashes}")
+
+#     # This is the url for the file that contains data the difficult to parse, complete file
+#     full_submission_url = f"{submission_base_url}/{accession_number}.txt" 
+
+#     # Url for the html file that we want
+#     filing_details_url = f"{submission_base_url}/{filing_details_filename}"
+
+#     # when we save the file, we will want to save it as html
+
+#     filing_details_filename_extension = Path(filing_details_filename).suffix.replace( "htm", "html")
+#     filing_details_filename = (f"{FILING_DETAILS_FILENAME_STEM}{filing_details_filename_extension}")
+
+
+#     return FilingMetadata(
+#         accession_number=accession_number,
+#         full_submission_url=full_submission_url,
+#         filing_details_url=filing_details_url,
+#         filing_details_filename=filing_details_filename,
+#         period_end_date = period_ending_date,
+#         cik=cik,
+#         edgar_name=edgar_name,
+#     )
+
+def build_filing_metadata_from_hit(hit: dict) -> Filing:
+
+    filing = Filing()
+    # The "_id" items contains the important detail we need to figure out the url
+    filing.accession_number, filing_details_filename = hit["_id"].split(":", 1)
+
     # Company CIK should be last in the CIK list. This list may also include
     # the CIKs of executives carrying out insider transactions like in form 4.
-    cik = hit["_source"]["ciks"][-1]
-    accession_number_no_dashes = accession_number.replace("-", "", 2)
-    period_ending_date = hit['_source']['period_ending']
+    filing.cik = hit["_source"]["ciks"][-1]
+    accession_number_no_dashes = filing.accession_number.replace("-", "", 2) # We need the accession number without dashes to build url below
+    filing.period_ending_date = hit['_source']['period_ending']
+    filing.edgar_name = hit["_source"]['display_names'][-1] # This contains a list of display names
 
-    submission_base_url = (
-        f"{SEC_EDGAR_ARCHIVES_BASE_URL}/{cik}/{accession_number_no_dashes}"
-    )
 
-    full_submission_url = f"{submission_base_url}/{accession_number}.txt"
-    filing_details_url = f"{submission_base_url}/{filing_details_filename}"
+    submission_base_url = (f"{SEC_EDGAR_ARCHIVES_BASE_URL}/{filing.cik}/{accession_number_no_dashes}")
 
+    # This is the url for the file that contains data the difficult to parse, complete file
+    filing.full_submission_url = f"{submission_base_url}/{filing.accession_number}.txt" 
+
+    # Url for the html file that we want
+    filing.filing_details_url = f"{submission_base_url}/{filing_details_filename}"
+
+    # when we save the file, we will want to save it as html
     filing_details_filename_extension = Path(filing_details_filename).suffix.replace( "htm", "html")
     filing_details_filename = (f"{FILING_DETAILS_FILENAME_STEM}{filing_details_filename_extension}")
 
+    # file_name 
+
+
     return FilingMetadata(
-        accession_number=accession_number,
-        full_submission_url=full_submission_url,
-        filing_details_url=filing_details_url,
         filing_details_filename=filing_details_filename,
-        period_end_date = period_ending_date,
-        cik=cik
+
     )
+
 
 
 def get_filing_urls_to_download(
@@ -132,7 +194,7 @@ def get_filing_urls_to_download(
 
     client = requests.Session()
     client.mount("http://", HTTPAdapter(max_retries=retries))
-    client.mount("https://", HTTPAdapter(max_retries=retries)) # Redundant? Delete this
+    # client.mount("https://", HTTPAdapter(max_retries=retries)) # Redundant? Delete this
     
     try:
         while len(filings_to_fetch) < num_filings_to_download:
@@ -198,6 +260,7 @@ def get_filing_urls_to_download(
                 if len(filings_to_fetch) == num_filings_to_download:
                     return filings_to_fetch
 
+
             # Edgar queries 100 entries at a time, but it is best to set this
             # from the response payload in case it changes in the future
             query_size = search_query_results["query"]["size"]
@@ -231,6 +294,109 @@ def resolve_relative_urls_in_filing(filing_text: str, download_url: str) -> str:
     return soup.encode(soup.original_encoding)
 
 
+# def download_and_save_filing(
+#     client: requests.Session,
+#     download_folder: Path,
+#     ticker_or_cik: str,
+#     accession_number: str,
+#     filing_type: str,
+#     download_url: str,
+#     save_filename: str,
+#     period_end_date: str,
+#     *,
+#     resolve_urls: bool = False,
+# ) -> None:
+
+#     """This"""
+
+#     # header is needed to declare who you are to Edgar's server
+#     headers = {
+#         "User-Agent": generate_random_user_agent(),
+#         "Accept-Encoding": "gzip, deflate",
+#         "Host": "www.sec.gov",
+#     }
+
+#     # This is what actually downloads the html from Edgar
+#     resp = client.get(download_url, headers=headers)
+#     resp.raise_for_status()
+#     filing_text = resp.content
+
+#     # Only resolve URLs in HTML files
+#     if resolve_urls and Path(save_filename).suffix == ".html":
+#         filing_text = resolve_relative_urls_in_filing(filing_text, download_url)
+
+
+#     # Create all parent directories as needed and write content to file
+#     save_path = download_folder / ROOT_SAVE_FOLDER_NAME / (f'{ticker_or_cik}_{period_end_date}_{filing_type}_{accession_number}_{save_filename}')
+
+#     # If the directory doesn't exists, create it.
+#     save_path.parent.mkdir(parents=True, exist_ok=True)
+
+#     # Save the document to a folder
+#     save_path.write_bytes(filing_text)
+
+#     # Prevent rate limiting and don't be a dick to edgar
+#     time.sleep(SEC_EDGAR_RATE_LIMIT_SLEEP_INTERVAL)
+
+
+
+# def download_filings(
+#     download_folder: Path,
+#     ticker_or_cik: str,
+#     filing_type: str,
+#     filings_to_fetch: List[FilingMetadata],
+#     include_filing_details: bool,
+#     log_dict:dict,
+# ) -> None:
+
+#     client = requests.Session()
+#     client.mount("http://", HTTPAdapter(max_retries=retries))
+#     client.mount("https://", HTTPAdapter(max_retries=retries))
+
+#     try:
+#         for filing in filings_to_fetch:
+#             if include_filing_details: # This is redundant since we always include file details. Delete this at some point
+
+#                 save_file_path = download_folder / ROOT_SAVE_FOLDER_NAME / (f'{ticker_or_cik}_{filing.period_end_date}_{filing_type}_{filing.accession_number}_{filing.filing_details_filename}')
+
+#                 log_dict['ticker'].append(ticker_or_cik)
+#                 log_dict['cik'].append(filing.cik)
+#                 log_dict['period_end'].append(filing.period_end_date)
+#                 log_dict['filing_type'].append(filing_type)
+#                 log_dict['url'].append(filing.filing_details_url)
+#                 log_dict['file_name'].append(save_file_path.absolute()) # This actually only would make sense if it is a success
+
+#                 try:
+#                     download_and_save_filing(
+#                         client,
+#                         download_folder,
+#                         ticker_or_cik,
+#                         filing.accession_number,
+#                         filing_type,
+#                         filing.filing_details_url,
+#                         filing.filing_details_filename,
+#                         resolve_urls=True,
+#                         period_end_date = filing.period_end_date,
+#                     )
+
+#                     log_dict['success'].append(True)
+                    
+                    
+#                 except requests.exceptions.HTTPError as e:  # pragma: no cover
+#                     print(
+#                         f"Skipping filing detail download for "
+#                         f"'{filing.accession_number}' due to network error: {e}."
+#                     )
+
+#                     log_dict['success'].append(False)
+
+
+#     finally:
+#         client.close()
+
+
+
+
 def download_and_save_filing(
     client: requests.Session,
     download_folder: Path,
@@ -240,8 +406,7 @@ def download_and_save_filing(
     download_url: str,
     save_filename: str,
     period_end_date: str,
-    *,
-    resolve_urls: bool = False,
+    resolve_urls: bool = True,
 ) -> None:
 
     """This"""
@@ -280,55 +445,56 @@ def download_filings(
     download_folder: Path,
     ticker_or_cik: str,
     filing_type: str,
-    filings_to_fetch: List[FilingMetadata],
-    include_filing_details: bool,
+    filings_to_fetch: List[Filing],
     log_dict:dict,
 ) -> None:
 
     client = requests.Session()
     client.mount("http://", HTTPAdapter(max_retries=retries))
-    client.mount("https://", HTTPAdapter(max_retries=retries))
+    # client.mount("https://", HTTPAdapter(max_retries=retries))
 
     try:
         for filing in filings_to_fetch:
-            if include_filing_details: # This is redundant since we always include file details. Delete this at some point
 
-                save_file_path = download_folder / ROOT_SAVE_FOLDER_NAME / (f'{ticker_or_cik}_{filing.period_end_date}_{filing_type}_{filing.accession_number}_{filing.filing_details_filename}')
+            # file_name 
+            save_file_path = download_folder / ROOT_SAVE_FOLDER_NAME / (f'{ticker_or_cik}_{filing.period_end_date}_{filing_type}_{filing.accession_number}_{filing.filing_details_filename}')
 
-                log_dict['ticker'].append(ticker_or_cik)
-                log_dict['cik'].append(filing.cik)
-                log_dict['period_end'].append(filing.period_end_date)
-                log_dict['filing_type'].append(filing_type)
-                log_dict['url'].append(filing.filing_details_url)
-                log_dict['file_name'].append(save_file_path.absolute()) # This actually only would make sense if it is a success
+            # Record the attempt in the log
+            log_dict['ticker'].append(ticker_or_cik)
+            log_dict['cik'].append(filing.cik)
+            log_dict['period_end'].append(filing.period_end_date)
+            log_dict['filing_type'].append(filing_type)
+            log_dict['url'].append(filing.filing_details_url)
+            log_dict['file_name'].append(save_file_path.absolute()) # This actually only would make sense if it is a success
 
-                try:
-                    download_and_save_filing(
-                        client,
-                        download_folder,
-                        ticker_or_cik,
-                        filing.accession_number,
-                        filing_type,
-                        filing.filing_details_url,
-                        filing.filing_details_filename,
-                        resolve_urls=True,
-                        period_end_date = filing.period_end_date,
-                    )
+            try:
+                download_and_save_filing(
+                    client,
+                    download_folder,
+                    ticker_or_cik,
+                    filing.accession_number,
+                    filing_type,
+                    filing.filing_details_url,
+                    filing.filing_details_filename,
+                    resolve_urls=True,
+                    period_end_date = filing.period_end_date,
+                )
 
-                    log_dict['success'].append(True)
-                    
-                    
-                except requests.exceptions.HTTPError as e:  # pragma: no cover
-                    print(
-                        f"Skipping filing detail download for "
-                        f"'{filing.accession_number}' due to network error: {e}."
-                    )
+                log_dict['success'].append(True)
+                
+                
+            except requests.exceptions.HTTPError as e:  # pragma: no cover
+                print(
+                    f"Skipping filing detail download for "
+                    f"'{filing.accession_number}' due to network error: {e}."
+                )
 
-                    log_dict['success'].append(False)
+                log_dict['success'].append(False)
 
 
     finally:
         client.close()
+
 
 
 def get_number_of_unique_filings(filings: List[FilingMetadata]) -> int:

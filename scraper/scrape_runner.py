@@ -67,11 +67,12 @@ for ticker in ciks:
 # for ticker in tickers:
     print(f'Getting ticker: {ticker}')
     for filing_type in filing_types:
-        try:
-            downloader.get2(filing_type, ticker, after=start_date, before=end_date,log_dict=log_dict)
-        except:
-            print(f'Failed somewhere for: {ticker}-{filing_type}')
-            failed_lookups.append([ticker,filing_type])
+        downloader.get2(filing_type, ticker, after=start_date, before=end_date,log_dict=log_dict)
+        # try:
+        #     downloader.get2(filing_type, ticker, after=start_date, before=end_date,log_dict=log_dict)
+        # except:
+        #     print(f'Failed somewhere for: {ticker}-{filing_type}')
+        #     failed_lookups.append([ticker,filing_type])
 
         print('ha')
 
