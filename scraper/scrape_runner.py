@@ -32,7 +32,7 @@ start_date = "2000-01-01"
 start_date = "2019-01-01"
 end_date = "2021-01-01"
 
-# This block is mainly used to get the cik-gvkey mapping
+# This block is here to get info on the universe of stocks we are going to scrape
 stock_df = pd.read_csv('scraper/scraping_universe.csv') # pd.read_csv('scraper/company_data.csv')
 stock_df['datadate'] = pd.to_datetime(stock_df['datadate'])
 stock_df = stock_df[stock_df.datadate >='2000-01-01']
@@ -46,16 +46,13 @@ stock_df['cik'] = stock_df['cik'].astype(int).astype(str)
 # energy_df = energy_df[energy_df.datadate >= start_date]
 # ciks = list(energy_df['cik'].unique())
 
+
 ciks = list(stock_df['cik'].unique())
+ciks = ciks[:20]
 print(len(ciks))
 
 
-
-ciks = ['19617']
-# ciks = ['0000019617']
-# ciks = [cik.rjust(10,'0') for cik in ciks]
-# ciks = ['aapl']
-ciks = ['320193']
+# ciks = ['320193']
 
 
 downloader = Downloader("scraper")
@@ -65,7 +62,7 @@ failed_lookups = []
 
 for ticker in ciks:
 # for ticker in tickers:
-    print(f'Getting ticker: {ticker}')
+    print(f'Getting cik: "{ticker}"')
     for filing_type in filing_types:
         downloader.get2(filing_type, ticker, after=start_date, before=end_date,log_dict=log_dict)
         # try:
@@ -74,7 +71,7 @@ for ticker in ciks:
         #     print(f'Failed somewhere for: {ticker}-{filing_type}')
         #     failed_lookups.append([ticker,filing_type])
 
-        print('ha')
+
 
 # Save the log to a csv
 df_log = pd.DataFrame(log_dict)

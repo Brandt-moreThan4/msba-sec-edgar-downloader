@@ -1,6 +1,5 @@
 """Utility functions for the downloader class."""
 import time
-from collections import namedtuple
 from datetime import datetime
 from pathlib import Path
 from tkinter.messagebox import NO
@@ -240,13 +239,10 @@ def get_filing_urls_to_download(
                     continue
 
                 metadata = build_filing_metadata_from_hit(hit)
-               
-                
                 filings_to_fetch.append(metadata)
 
                 if len(filings_to_fetch) == num_filings_to_download:
                     return filings_to_fetch
-
 
             # Edgar queries 100 entries at a time, but it is best to set this
             # from the response payload in case it changes in the future
@@ -281,158 +277,9 @@ def resolve_relative_urls_in_filing(filing_text: str, download_url: str) -> str:
     return soup.encode(soup.original_encoding)
 
 
-# def download_and_save_filing(
-#     client: requests.Session,
-#     download_folder: Path,
-#     ticker_or_cik: str,
-#     accession_number: str,
-#     filing_type: str,
-#     download_url: str,
-#     save_filename: str,
-#     period_end_date: str,
-#     *,
-#     resolve_urls: bool = False,
-# ) -> None:
-
-#     """This"""
-
-#     # header is needed to declare who you are to Edgar's server
-#     headers = {
-#         "User-Agent": generate_random_user_agent(),
-#         "Accept-Encoding": "gzip, deflate",
-#         "Host": "www.sec.gov",
-#     }
-
-#     # This is what actually downloads the html from Edgar
-#     resp = client.get(download_url, headers=headers)
-#     resp.raise_for_status()
-#     filing_text = resp.content
-
-#     # Only resolve URLs in HTML files
-#     if resolve_urls and Path(save_filename).suffix == ".html":
-#         filing_text = resolve_relative_urls_in_filing(filing_text, download_url)
-
-
-#     # Create all parent directories as needed and write content to file
-#     save_path = download_folder / ROOT_SAVE_FOLDER_NAME / (f'{ticker_or_cik}_{period_end_date}_{filing_type}_{accession_number}_{save_filename}')
-
-#     # If the directory doesn't exists, create it.
-#     save_path.parent.mkdir(parents=True, exist_ok=True)
-
-#     # Save the document to a folder
-#     save_path.write_bytes(filing_text)
-
-#     # Prevent rate limiting and don't be a dick to edgar
-#     time.sleep(SEC_EDGAR_RATE_LIMIT_SLEEP_INTERVAL)
-
-
-
-# def download_filings(
-#     download_folder: Path,
-#     ticker_or_cik: str,
-#     filing_type: str,
-#     filings_to_fetch: List[FilingMetadata],
-#     include_filing_details: bool,
-#     log_dict:dict,
-# ) -> None:
-
-#     client = requests.Session()
-#     client.mount("http://", HTTPAdapter(max_retries=retries))
-#     client.mount("https://", HTTPAdapter(max_retries=retries))
-
-#     try:
-#         for filing in filings_to_fetch:
-#             if include_filing_details: # This is redundant since we always include file details. Delete this at some point
-
-#                 save_file_path = download_folder / ROOT_SAVE_FOLDER_NAME / (f'{ticker_or_cik}_{filing.period_end_date}_{filing_type}_{filing.accession_number}_{filing.filing_details_filename}')
-
-#                 log_dict['ticker'].append(ticker_or_cik)
-#                 log_dict['cik'].append(filing.cik)
-#                 log_dict['period_end'].append(filing.period_end_date)
-#                 log_dict['filing_type'].append(filing_type)
-#                 log_dict['url'].append(filing.filing_details_url)
-#                 log_dict['file_name'].append(save_file_path.absolute()) # This actually only would make sense if it is a success
-
-#                 try:
-#                     download_and_save_filing(
-#                         client,
-#                         download_folder,
-#                         ticker_or_cik,
-#                         filing.accession_number,
-#                         filing_type,
-#                         filing.filing_details_url,
-#                         filing.filing_details_filename,
-#                         resolve_urls=True,
-#                         period_end_date = filing.period_end_date,
-#                     )
-
-#                     log_dict['success'].append(True)
-                    
-                    
-#                 except requests.exceptions.HTTPError as e:  # pragma: no cover
-#                     print(
-#                         f"Skipping filing detail download for "
-#                         f"'{filing.accession_number}' due to network error: {e}."
-#                     )
-
-#                     log_dict['success'].append(False)
-
-
-#     finally:
-#         client.close()
-
-
-
-
-# def download_and_save_filing(
-#     client: requests.Session,
-#     download_folder: Path,
-#     ticker_or_cik: str,
-#     accession_number: str,
-#     filing_type: str,
-#     download_url: str,
-#     save_filename: str,
-#     period_end_date: str,
-#     resolve_urls: bool = True,
-# ) -> None:
-
-#     """This"""
-
-#     # header is needed to declare who you are to Edgar's server
-#     headers = {
-#         "User-Agent": generate_random_user_agent(),
-#         "Accept-Encoding": "gzip, deflate",
-#         "Host": "www.sec.gov",
-#     }
-
-#     # This is what actually downloads the html from Edgar
-#     resp = client.get(download_url, headers=headers)
-#     resp.raise_for_status()
-#     filing_text = resp.content
-
-#     # Only resolve URLs in HTML files
-#     if resolve_urls and Path(save_filename).suffix == ".html":
-#         filing_text = resolve_relative_urls_in_filing(filing_text, download_url)
-
-
-#     # Create all parent directories as needed and write content to file
-#     save_path = download_folder / ROOT_SAVE_FOLDER_NAME / (f'{ticker_or_cik}_{period_end_date}_{filing_type}_{accession_number}_{save_filename}')
-
-#     # If the directory doesn't exists, create it.
-#     save_path.parent.mkdir(parents=True, exist_ok=True)
-
-#     # Save the document to a folder
-#     save_path.write_bytes(filing_text)
-
-#     # Prevent rate limiting and don't be a dick to edgar
-#     time.sleep(SEC_EDGAR_RATE_LIMIT_SLEEP_INTERVAL)
-
 
 
 def download_filings(
-    # download_folder: Path,
-    # ticker_or_cik: str,
-    # filing_type: str,
     filings_to_fetch: List[Filing],
     log_dict:dict,
 ) -> None:
@@ -462,7 +309,6 @@ def download_filings(
                 )
 
                 log_dict['success'].append(False)
-
 
     finally:
         client.close()
