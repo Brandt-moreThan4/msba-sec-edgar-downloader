@@ -1,4 +1,4 @@
-from cv2 import CHAIN_APPROX_TC89_KCOS
+# from cv2 import CHAIN_APPROX_TC89_KCOS
 import pandas as pd
 from pathlib import Path
 import sys
@@ -16,8 +16,7 @@ startTime = time.time()
 # This just needs to be the path to the folder where the scraping code package is stored in. 
 sys.path.append(r'C:\Users\User\OneDrive\Desktop\Code\msba_edgar')
 from ut_msba_edgar_scraper import Downloader
-
-from ut_msba_edgar_scraper.msba_utils import get_cik, get_ticker 
+from ut_msba_edgar_scraper.msba_utils import get_ticker_from_gvkey, get_cik_from_gvkey 
 
 
 # print(get_cik('8264','2004-01-01'))

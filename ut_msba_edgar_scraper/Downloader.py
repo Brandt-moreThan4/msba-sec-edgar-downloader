@@ -8,7 +8,7 @@ from ._constants import DATE_FORMAT_TOKENS, DEFAULT_AFTER_DATE, DEFAULT_BEFORE_D
 from ._constants import SUPPORTED_FILINGS as _SUPPORTED_FILINGS
 from ._utils import (download_filings, get_filing_urls_to_download, get_number_of_unique_filings, is_cik, validate_date_format)
 
-from .msba_utils import get_cik, get_ticker
+from .msba_utils import get_cik_from_gvkey, get_ticker_from_gvkey
 
 
 class Downloader:

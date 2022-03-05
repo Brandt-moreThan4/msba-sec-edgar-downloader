@@ -18,20 +18,22 @@ stock_mapping_df['cik'] = stock_mapping_df['cik'].astype(int).astype(str)
 
 # We could speed up the below functions by making it a lookup instead of filters
 
-def get_ticker(gvkey:str, date:str) -> str:
+def get_ticker_from_gvkey(gvkey:str, date:str) -> str:
     """Send in a gvkey string, and this will return the cik associated with that Date in formate YYYY-MM-DD"""
     filtered_df = stock_mapping_df[(stock_mapping_df.gvkey == gvkey) & (stock_mapping_df.datadate <= date) ]
     tickers = list(filtered_df.tic.unique())
 
-    return tickers[-1] # Returns the last cik. Just in case there are multiple, which there shouldn't be
+    return str(tickers[-1]) # Returns the last cik. Just in case there are multiple, which there shouldn't be
 
 # get_ticker('11506','2004-01-01')
 
-def get_cik(gvkey:str, date:str) -> str:
+def get_cik_from_gvkey(gvkey:str, date:str) -> str:
     """Send in a gvkey string, and this will return the cik associated with that Date in formate YYYY-MM-DD"""
     filtered_df = stock_mapping_df[(stock_mapping_df.gvkey == gvkey) & (stock_mapping_df.datadate <= date) ]
     ciks = list(filtered_df.cik.unique())
-
-    return ciks[-1] # Returns the last cik. Just in case there are multiple, which there shouldn't be
+    # Returns the last cik. Just in case there are multiple, which there shouldn't be
+    # Also, make sure it is in the 10 digit format. So fill in leading zeros if nexessary
+    cik = str(ciks[-1]).zfill(10) 
+    return cik 
 
 # print(get_cik('8264','2004-01-01'))
