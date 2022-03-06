@@ -54,7 +54,7 @@ class Downloader:
         before: Optional[str] = '2023-01-01', # Change the default day to be today
         include_amends: bool = False,
         query: str = "",
-        is_gvkey=False,
+        is_gvkey=True,
     ) -> int:
         """ ADD DESCRIPTION HERE"""
 

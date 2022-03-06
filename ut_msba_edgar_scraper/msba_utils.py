@@ -5,11 +5,11 @@ from bs4 import BeautifulSoup
 
 folder_path = Path(__file__).parent
 edgar_filing_path = Path().cwd() / 'scraper' / 'sec-edgar-filings'
-data_path = folder_path / 'company_data.csv'
+company_data_path = folder_path / 'company_data.csv'
 
 
 # This block is  used to get the cik-gvkey mapping
-stock_mapping_df = pd.read_csv(data_path)
+stock_mapping_df = pd.read_csv(company_data_path)
 stock_mapping_df['datadate'] = pd.to_datetime(stock_mapping_df['datadate'])
 stock_mapping_df = stock_mapping_df[stock_mapping_df.datadate >= '2000-01-01']
 stock_mapping_df = stock_mapping_df.dropna()
@@ -67,7 +67,6 @@ filing_info_path = folder_path / 'filings_info.csv'
 df_file_mapping = pd.read_csv(filing_info_path,dtype='string')
 df_file_mapping['date'] = pd.to_datetime(df_file_mapping['date'])
 df_file_mapping = df_file_mapping.sort_values(['cik','date'])
-
 
 
 
