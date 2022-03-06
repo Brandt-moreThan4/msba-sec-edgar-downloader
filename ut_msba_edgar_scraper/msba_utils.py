@@ -9,7 +9,7 @@ company_data_path = folder_path / 'company_data.csv'
 
 
 # This block is  used to get the cik-gvkey mapping
-stock_mapping_df = pd.read_csv(company_data_path)
+stock_mapping_df = pd.read_csv('https://github.com/Brandt-moreThan4/Data/blob/main/company_data.csv?raw=true') 
 stock_mapping_df['datadate'] = pd.to_datetime(stock_mapping_df['datadate'])
 stock_mapping_df = stock_mapping_df[stock_mapping_df.datadate >= '2000-01-01']
 stock_mapping_df = stock_mapping_df.dropna()

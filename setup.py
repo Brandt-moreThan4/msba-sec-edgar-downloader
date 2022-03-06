@@ -10,7 +10,7 @@ README = (HERE / "README.md").read_text()
 # This call to setup() does all the work
 setup(
     name="ut_msba_edgar_scraper",
-    version="1.0.0",
+    version="1.3.0",
     description="UT MSBA Edgar Scraper",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -24,6 +24,7 @@ setup(
         "Programming Language :: Python :: 3.7",
     ],
     packages=["ut_msba_edgar_scraper"],
+    # package_data={'ut_msba_edgar_scraper': ['/*.csv']},
     include_package_data=True,
-    install_requires=["pandas"],
+    install_requires=["pandas",'bs4'],
 )
