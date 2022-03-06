@@ -57,8 +57,6 @@ gvkeys = consumer_df['gvkey'].unique()
 
 
 
-# ciks = ['320193']
-
 
 downloader = Downloader("scraper")
 

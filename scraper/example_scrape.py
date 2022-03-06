@@ -39,7 +39,7 @@ failed_lookups = []
 gvkey = gvkeys[0]
 
 
-reports = downloader.get_filings('10-K',gvkey, before='2020-07-15', is_gvkey=True)
+reports = downloader.get_filings('10-Q',gvkey, before='2020-07-15', is_gvkey=True)
 
 # Grab the most recent report
 most_recent_report = reports[-1]
