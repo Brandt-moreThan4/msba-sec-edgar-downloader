@@ -12,6 +12,7 @@ from bs4 import BeautifulSoup
 from faker import Faker
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+import pandas as pd
 
 from ._constants import (
     DATE_FORMAT_TOKENS,
@@ -42,7 +43,17 @@ class Filing:
         self.file_name = None
         self.save_path = None
         self.report_type = None
+    
+    def __repr__(self) -> str:
+        return f'{self.cik}_{self.period_end_date}_{self.report_type}'
 
+    def __str__(self) -> str:
+        return str(self.edgar_name)
+
+    @property
+    def data_date(self):
+        """So that we can sort the string date"""
+        return pd.to_datetime(self.period_end_date)
 
     def download_and_save_filing_html(
         self,
@@ -81,6 +92,50 @@ class Filing:
 
             # Prevent rate limiting and don't be a dick to edgar
             time.sleep(SEC_EDGAR_RATE_LIMIT_SLEEP_INTERVAL)
+
+    def get_report(self,resolve_urls=True,type='raw'):
+        """ type options are 'soup, raw, and text' """
+
+        client = requests.Session()
+        client.mount("http://", HTTPAdapter(max_retries=retries))
+
+        headers = {
+                "User-Agent": generate_random_user_agent(),
+                "Accept-Encoding": "gzip, deflate",
+                "Host": "www.sec.gov",
+            }
+
+        try:
+             # This is what actually downloads the html from Edgar
+            resp = client.get(self.filing_details_url, headers=headers)
+            resp.raise_for_status()
+            filing_text = resp.content
+
+            # Only resolve URLs in HTML files
+            if resolve_urls and self.save_path.suffix == ".html":
+                filing_text = resolve_relative_urls_in_filing(filing_text, self.filing_details_url)
+
+            time.sleep(SEC_EDGAR_RATE_LIMIT_SLEEP_INTERVAL)
+            
+        except requests.exceptions.HTTPError as e:  # pragma: no cover
+            print(
+                f"Skipping filing detail download for "
+                f"'{self.filing_details_url}' due to network error: {e}."
+            )
+
+        finally:
+            client.close()
+
+        if type == 'raw':
+            return filing_text
+        elif type == 'soup':
+            return BeautifulSoup(filing_text,"lxml")
+        elif type == 'text':
+            soup = BeautifulSoup(filing_text,"lxml")
+            return soup.get_text()
+        else:
+            Exception(f'Sorry, invalid type. Must be one of: "soup, raw, or text" ') 
+
 
 
     def download_and_save_filing_to_drive(

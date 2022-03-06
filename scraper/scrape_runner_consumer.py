@@ -19,16 +19,12 @@ from ut_msba_edgar_scraper import Downloader
 from ut_msba_edgar_scraper.msba_utils import get_ticker_from_gvkey, get_cik_from_gvkey 
 
 
-# print(get_cik('8264','2004-01-01'))
-# print(get_cik('8264','2004-01-01'))
-# print(get_cik('8264','2004-01-01'))
-
 filing_types = ['10-K','10-Q']
 
 
 
 start_date = "2000-01-01"
-start_date = "2019-01-01"
+# start_date = "2019-01-01"
 end_date = "2021-01-01"
 
 # This block is here to get info on the universe of stocks we are going to scrape
@@ -47,34 +43,35 @@ stock_df['cik'] = stock_df['cik'].astype(int).astype(str)
 # ciks = list(energy_df['cik'].unique())
 
 
-ciks = list(stock_df['cik'].unique())
-ciks = ciks[:20]
-print(len(ciks))
 
 
 consumer_df = pd.read_csv('scraper/consumer_gvkey.csv')
 gvkeys = consumer_df['gvkey'].unique()
+gvkeys_trimmed = gvkeys[:20]
+gvkeys_trimmed = gvkeys[20:36]
 
 
 
-# ciks = ['320193']
 
-
-downloader = Downloader("scraper")
+downloader = Downloader("scraper/consumer_discretionary")
 
 log_dict: dict = {'ticker':[],'cik':[],'filing_type':[],'period_end':[],'file_name':[],'url':[],'success':[]}
 failed_lookups = []
 
-for ticker in ciks:
+
+for ticker in gvkeys_trimmed:
+# for ticker in ciks:
 # for ticker in tickers:
     print(f'Getting cik: "{ticker}"')
     for filing_type in filing_types:
-        downloader.get2(filing_type, ticker, after=start_date, before=end_date,log_dict=log_dict)
+        # downloader.get2(filing_type, ticker, after=start_date, before=end_date,log_dict=log_dict)
+        downloader.get2(filing_type, ticker, after=start_date, before=end_date,log_dict=log_dict,is_gvkey=True)
         # try:
         #     downloader.get2(filing_type, ticker, after=start_date, before=end_date,log_dict=log_dict)
         # except:
         #     print(f'Failed somewhere for: {ticker}-{filing_type}')
         #     failed_lookups.append([ticker,filing_type])
+
 
 
 

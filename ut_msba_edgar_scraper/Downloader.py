@@ -3,12 +3,14 @@
 import sys
 from pathlib import Path
 from typing import ClassVar, List, Optional, Union
+import pandas as pd
 
 from ._constants import DATE_FORMAT_TOKENS, DEFAULT_AFTER_DATE, DEFAULT_BEFORE_DATE, ROOT_SAVE_FOLDER_NAME
 from ._constants import SUPPORTED_FILINGS as _SUPPORTED_FILINGS
 from ._utils import (download_filings, get_filing_urls_to_download, get_number_of_unique_filings, is_cik, validate_date_format)
 
 from .msba_utils import get_cik_from_gvkey, get_ticker_from_gvkey
+
 
 
 class Downloader:
@@ -43,6 +45,109 @@ class Downloader:
         return self.download_folder
 
 
+    def get_filings(
+        self,
+        filing_type: str,
+        ticker_or_cik: str,
+        amount: Optional[int] = None,
+        after: Optional[str] = None,
+        before: Optional[str] = '2023-01-01', # Change the default day to be today
+        include_amends: bool = False,
+        query: str = "",
+        is_gvkey=False,
+    ) -> int:
+        """ ADD DESCRIPTION HERE"""
+
+        if is_gvkey: # If the ticker or cik is actually a gvkey, then we first want to convert it to 
+            ticker_or_cik = get_cik_from_gvkey(ticker_or_cik,date=before) 
+
+        ticker_or_cik = str(ticker_or_cik).strip().upper()
+
+        # Detect CIKs and ensure that they are properly zero-padded
+        if is_cik(ticker_or_cik):
+            if len(ticker_or_cik) > 10:
+                raise ValueError("Invalid CIK. CIKs must be at most 10 digits long.")
+            # Pad CIK with 0s to ensure that it is exactly 10 digits long
+            # The SEC Edgar Search API requires zero-padded CIKs to ensure
+            # that search results are accurate. Relates to issue #84.
+            ticker_or_cik = ticker_or_cik.zfill(10)
+
+        if amount is None:
+            # If amount is not specified, obtain all available filings.
+            # We simply need a large number to denote this and the loop
+            # responsible for fetching the URLs will break appropriately.
+            amount = sys.maxsize
+        else:
+            amount = int(amount)
+            if amount < 1:
+                raise ValueError(
+                    "Invalid amount. Please enter a number greater than 1."
+                )
+
+        # SEC allows for filing searches from 2000 onwards
+        if after is None:
+            after = DEFAULT_AFTER_DATE.strftime(DATE_FORMAT_TOKENS)
+        else:
+            validate_date_format(after)
+
+            if after < DEFAULT_AFTER_DATE.strftime(DATE_FORMAT_TOKENS):
+                raise ValueError(
+                    f"Filings cannot be downloaded prior to {DEFAULT_AFTER_DATE.year}. "
+                    f"Please enter a date on or after {DEFAULT_AFTER_DATE}."
+                )
+
+        if before is None:
+            before = DEFAULT_BEFORE_DATE.strftime(DATE_FORMAT_TOKENS)
+        else:
+            validate_date_format(before)
+
+        if after > before:
+            raise ValueError(
+                "Invalid after and before date combination. "
+                "Please enter an after date that is less than the before date."
+            )
+
+        if filing_type not in _SUPPORTED_FILINGS:
+            filing_options = ", ".join(self.supported_filings)
+            raise ValueError(
+                f"'{filing}' filings are not supported. "
+                f"Please choose from the following: {filing_options}."
+            )
+
+        if not isinstance(query, str):
+            raise TypeError("Query must be of type string.")
+
+        pd_before = pd.to_datetime(before)
+        # before
+
+        filings_to_fetch = get_filing_urls_to_download(
+            filing_type,
+            ticker_or_cik,
+            amount,
+            after,
+            '2023-01-01', # this is the before date. Super slopper, but we always grab all urls and filter the rest out later
+            # before,
+            include_amends,
+            query,
+        )
+
+
+        # Make the assumption that by the time we get here, we will onnly be looking at ciks, not tickers
+        for filing in filings_to_fetch:
+            filing.report_type = filing_type
+            filing.file_name = (f'{ticker_or_cik}_{filing.period_end_date}_{filing.report_type}_{filing.accession_number}.html')
+            filing.save_path = self.download_folder / ROOT_SAVE_FOLDER_NAME / filing.file_name
+            # Add code here to inseret ticker & gvkey
+
+        
+
+        filings_to_fetch = list(filter(lambda x: x.data_date <= pd_before, filings_to_fetch))
+        filings_to_fetch.sort(key=lambda x: x.data_date) # Make sure it is sorted in ascending order by period end date
+            
+        return filings_to_fetch
+
+
+
     def get2(
         self,
         filing_type: str,
@@ -75,7 +180,7 @@ class Downloader:
         """
 
         if is_gvkey: # If the ticker or cik is actually a gvkey, then we first want to convert it to 
-            ticker_or_cik = get_cik_from_gvkey(ticker_or_cik)
+            ticker_or_cik = get_cik_from_gvkey(ticker_or_cik,date='2022-03-05') # Change the default day to be today
 
         ticker_or_cik = str(ticker_or_cik).strip().upper()
 
@@ -158,62 +263,3 @@ class Downloader:
         return get_number_of_unique_filings(filings_to_fetch)
 
 
-
-
-
-# Example usage for get
-# """Download filings and save them to disk.
-
-# :param filing: filing type to download (e.g. 8-K).
-# :param ticker_or_cik: ticker or CIK to download filings for.
-# :param amount: number of filings to download.
-# Defaults to all available filings.
-# :param after: date of form YYYY-MM-DD after which to download filings.
-# Defaults to 2000-01-01, the earliest date supported by EDGAR full text search.
-# :param before: date of form YYYY-MM-DD before which to download filings.
-# Defaults to today.
-# :param include_amends: denotes whether or not to include filing amends (e.g. 8-K/A).
-# Defaults to False.
-# :param download_details: denotes whether or not to download human-readable and easily
-# parseable filing detail documents (e.g. form 4 XML, 8-K HTML). Defaults to True.
-# :param query: keyword to search for in filing documents.
-# :return: number of filings downloaded.
-
-# Usage::
-
-# >>> from sec_edgar_downloader import Downloader
-# >>> dl = Downloader()
-
-# # Get all 8-K filings for Apple
-# >>> dl.get("8-K", "AAPL")
-
-# # Get all 8-K filings for Apple, including filing amends (8-K/A)
-# >>> dl.get("8-K", "AAPL", include_amends=True)
-
-# # Get all 8-K filings for Apple after January 1, 2017 and before March 25, 2017
-# >>> dl.get("8-K", "AAPL", after="2017-01-01", before="2017-03-25")
-
-# # Get the five most recent 10-K filings for Apple
-# >>> dl.get("10-K", "AAPL", amount=5)
-
-# # Get all 10-K filings for Apple, excluding the filing detail documents
-# >>> dl.get("10-K", "AAPL", amount=1, download_details=False)
-
-# # Get all Apple proxy statements that contain the term "antitrust"
-# >>> dl.get("DEF 14A", "AAPL", query="antitrust")
-
-# # Get all 10-Q filings for Visa
-# >>> dl.get("10-Q", "V")
-
-# # Get all 13F-NT filings for the Vanguard Group
-# >>> dl.get("13F-NT", "0000102909")
-
-# # Get all 13F-HR filings for the Vanguard Group
-# >>> dl.get("13F-HR", "0000102909")
-
-# # Get all SC 13G filings for Apple
-# >>> dl.get("SC 13G", "AAPL")
-
-# # Get all SD filings for Apple
-# >>> dl.get("SD", "AAPL")
-# """
