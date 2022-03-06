@@ -30,7 +30,7 @@ def get_ticker_from_gvkey(gvkey:str, date:str) -> str:
 
 
 def gvkey_exists(gvkey:str) -> bool:
-    if str(gvkey) in stock_mapping_df['gvkey']:
+    if str(gvkey) in stock_mapping_df['gvkey'].values:
         return True
     else:
         return False

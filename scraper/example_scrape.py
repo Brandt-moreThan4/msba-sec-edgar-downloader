@@ -37,7 +37,7 @@ gvkey = gvkeys[0]
 
 
 
-reports = downloader.get_filings('10-K','51616', before='2020-07-15')
+reports = downloader.get_filings('10-K','1004', before='2020-07-15')
 
 # reports = downloader.get_filings('10-Q',gvkey, before='2020-07-15', is_gvkey=True)
 
