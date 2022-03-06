@@ -32,14 +32,14 @@ gvkeys = list(stock_df.gvkey.unique())[:20]
 
 downloader = Downloader("scraper/consumer_discretionary")
 
-log_dict: dict = {'ticker':[],'cik':[],'filing_type':[],'period_end':[],'file_name':[],'url':[],'success':[]}
-failed_lookups = []
-
 
 gvkey = gvkeys[0]
 
 
-reports = downloader.get_filings('10-Q',gvkey, before='2020-07-15', is_gvkey=True)
+
+reports = downloader.get_filings('10-K','51616', before='2020-07-15')
+
+# reports = downloader.get_filings('10-Q',gvkey, before='2020-07-15', is_gvkey=True)
 
 # Grab the most recent report
 most_recent_report = reports[-1]

@@ -43,7 +43,7 @@ def get_cik_from_gvkey(gvkey:str, date:str) -> str:
     gvkey = str(gvkey) # Needs to be a string to be conistent with other dataframes
 
     if not gvkey_exists(gvkey):
-        Exception(f'Sorry, gvkey "{gvkey}" is invalid. Or we do not have this gvkey in our CIK-gvkey mapping table dataframe.')
+        raise Exception(f'Sorry, gvkey "{gvkey}" is invalid. Or we do not have this gvkey in our CIK-gvkey mapping table dataframe.')
 
     filtered_df = stock_mapping_df[(stock_mapping_df.gvkey == gvkey) & (stock_mapping_df.datadate <= date)]
 

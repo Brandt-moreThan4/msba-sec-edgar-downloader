@@ -134,7 +134,7 @@ class Filing:
             soup = BeautifulSoup(filing_text,"lxml")
             return soup.get_text()
         else:
-            Exception(f'Sorry, invalid type. Must be one of: "soup, raw, or text" ') 
+            raise Exception(f'Sorry, invalid type. Must be one of: "soup, raw, or text" ') 
 
 
 
