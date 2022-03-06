@@ -10,7 +10,7 @@ README = (HERE / "README.md").read_text()
 # This call to setup() does all the work
 setup(
     name="ut_msba_edgar_scraper",
-    version="1.4.0",
+    version="1.5.0",
     description="UT MSBA Edgar Scraper",
     long_description=README,
     long_description_content_type="text/markdown",
