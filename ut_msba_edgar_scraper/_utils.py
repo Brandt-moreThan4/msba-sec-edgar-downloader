@@ -43,6 +43,8 @@ class Filing:
         self.file_name = None
         self.save_path = None
         self.report_type = None
+        self.gvkey = None
+        self.ticker = None
     
     def __repr__(self) -> str:
         return f'{self.cik}_{self.period_end_date}_{self.report_type}'
@@ -140,6 +142,9 @@ class Filing:
                 raise Exception(f'Sorry, invalid type. Must be one of: "soup, raw, or text" ') 
 
         return None
+
+    def test_report_download(self) -> bool:
+        pass
 
 
     def download_and_save_filing_to_drive(
@@ -264,13 +269,11 @@ def build_filing_metadata_from_hit(hit: dict) -> Filing:
     filing_details_filename_extension = Path(filing_details_filename).suffix.replace( "htm", "html")
     filing_details_filename = (f"{FILING_DETAILS_FILENAME_STEM}{filing_details_filename_extension}")
 
-    # file_name 
-    # Need to add in the save path
     return filing
 
 
 
-def get_filing_urls_to_download(
+def build_filings(
     filing_type: str,
     ticker_or_cik: str,
     num_filings_to_download: int,
