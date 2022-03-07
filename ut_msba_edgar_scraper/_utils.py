@@ -123,7 +123,7 @@ class Filing:
             
         except requests.exceptions.HTTPError as e:  # pragma: no cover
             print(
-                f"Skipping filing detail download for "
+                f"Unable to download report for this filing "
                 f"'{self.filing_details_url}' due to network error: {e}."
             )
 
@@ -144,7 +144,9 @@ class Filing:
         return None
 
     def test_report_download(self) -> bool:
-        pass
+        self.get_report()
+
+        return None
 
 
     def download_and_save_filing_to_drive(
@@ -420,6 +422,43 @@ def download_filings(
 
     finally:
         client.close()
+
+
+
+def test_file_grab(
+    filings_to_fetch: List[Filing],
+    log_dict:dict,
+) -> None:
+
+    client = requests.Session()
+    client.mount("http://", HTTPAdapter(max_retries=retries))
+
+    try:
+        for filing in filings_to_fetch:
+
+            # Record the attempt in the log
+            log_dict['ticker'].append(filing.edgar_name)
+            log_dict['cik'].append(filing.cik) # This will capture the last cik from the query. May not match the orginally input ticker
+            log_dict['period_end'].append(filing.period_end_date)
+            log_dict['filing_type'].append(filing.report_type)
+            log_dict['url'].append(filing.filing_details_url)
+            log_dict['file_name'].append(filing.save_path.absolute()) # This actually only would make sense if it is a success
+
+            try:
+                filing.download_and_save_filing_html(client)
+                log_dict['success'].append(True)
+                
+            except requests.exceptions.HTTPError as e:  # pragma: no cover
+                print(
+                    f"Skipping filing detail download for "
+                    f"'{filing.accession_number}' due to network error: {e}."
+                )
+
+                log_dict['success'].append(False)
+
+    finally:
+        client.close()
+
 
 
 

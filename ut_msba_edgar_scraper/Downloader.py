@@ -5,13 +5,18 @@ from pathlib import Path
 from typing import ClassVar, List, Optional, Union
 import pandas as pd
 
+import requests
+from requests.adapters import HTTPAdapter
+
 from ._constants import DATE_FORMAT_TOKENS, DEFAULT_AFTER_DATE, DEFAULT_BEFORE_DATE, ROOT_SAVE_FOLDER_NAME
 from ._constants import SUPPORTED_FILINGS as _SUPPORTED_FILINGS
-from ._utils import (download_filings, build_filings, get_number_of_unique_filings, is_cik, validate_date_format)
+from ._utils import (download_filings, build_filings, get_number_of_unique_filings, is_cik, validate_date_format,retries)
 
 from datetime import datetime 
 
 from .msba_utils import get_cik_from_gvkey, get_gvkey_from_cik
+
+
 
 TODAYS_DATE = DEFAULT_BEFORE_DATE.strftime(DATE_FORMAT_TOKENS)
 
@@ -147,7 +152,7 @@ class Downloader:
             
         return filings_to_fetch
 
-    def get3(
+    def get(
         self,
         filing_type: str,
         identifier: str,
@@ -164,10 +169,45 @@ class Downloader:
         """
 
         filings_to_fetch = self.get_filings(filing_type,identifier,amount,after,before,include_amends,query,is_gvkey)
-
             
         download_filings(filings_to_fetch, log_dict)
 
 
+    def test_scraping(
+        self,
+        filing_type: str,
+        identifier: str,
+        log_dict: dict,
+        amount: Optional[int] = None,
+        after: Optional[str] = None,
+        before: Optional[str] = None,
+        include_amends: bool = False,
+        query: str = "",
+        is_gvkey=True,
+    ) -> int:
+        """ ADD DESCRIPTION HERE
 
+        """
+        
+
+        filings_to_fetch = self.get_filings(filing_type,identifier,amount,after,before,include_amends,query,is_gvkey)
+
+        for filing in filings_to_fetch:
+
+            # Record the attempt in the log
+            log_dict['ticker'].append(filing.edgar_name)
+            log_dict['cik'].append(filing.cik) # This will capture the last cik from the query. May not match the orginally input ticker
+            log_dict['period_end'].append(filing.period_end_date)
+            log_dict['filing_type'].append(filing.report_type)
+            log_dict['url'].append(filing.filing_details_url)
+            log_dict['file_name'].append(filing.save_path.absolute()) # This actually only would make sense if it is a success
+            log_dict['gvkey'].append(filing.gvkey)
+
+            report = filing.get_report(resolve_urls=False,type='raw')
+
+            if report is None:
+                log_dict['success'].append(False)
+            else:
+                log_dict['success'].append(True)
+                    
 
