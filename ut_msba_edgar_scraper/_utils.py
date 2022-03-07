@@ -94,10 +94,12 @@ class Filing:
             time.sleep(SEC_EDGAR_RATE_LIMIT_SLEEP_INTERVAL)
 
     def get_report(self,resolve_urls=True,type='raw'):
-        """ type options are 'soup, raw, and text' """
+        """ type options are 'soup, raw, and text'. This returns 'none' if the scraping fails. """
 
         client = requests.Session()
         client.mount("http://", HTTPAdapter(max_retries=retries))
+
+        filing_text = None # Return none if the scraping fails.
 
         headers = {
                 "User-Agent": generate_random_user_agent(),
@@ -126,16 +128,18 @@ class Filing:
         finally:
             client.close()
 
-        if type == 'raw':
-            return filing_text
-        elif type == 'soup':
-            return BeautifulSoup(filing_text,"lxml")
-        elif type == 'text':
-            soup = BeautifulSoup(filing_text,"lxml")
-            return soup.get_text()
-        else:
-            raise Exception(f'Sorry, invalid type. Must be one of: "soup, raw, or text" ') 
+        if filing_text is not None:
+            if type == 'raw':
+                return filing_text
+            elif type == 'soup':
+                return BeautifulSoup(filing_text,"lxml")
+            elif type == 'text':
+                soup = BeautifulSoup(filing_text,"lxml")
+                return soup.get_text()
+            else:
+                raise Exception(f'Sorry, invalid type. Must be one of: "soup, raw, or text" ') 
 
+        return None
 
 
     def download_and_save_filing_to_drive(
