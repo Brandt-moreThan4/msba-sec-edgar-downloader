@@ -6,88 +6,65 @@ import datetime
 import pandas as pd
 import time
 
+sys.path.append(r'C:\Users\User\OneDrive\Desktop\Code\msba_edgar')
+from ut_msba_edgar_scraper import Downloader
+from ut_msba_edgar_scraper.msba_utils import get_ratings_df
+
+from pydrive.auth import GoogleAuth
+from pydrive.drive import GoogleDrive
+
+gauth = GoogleAuth()           
+drive = GoogleDrive(gauth)  
+
+
+
+def save_logs(log_dict:dict,failed_lookups):
+    df_log = pd.DataFrame(log_dict)
+    log_path = Path() / 'scraper' / 'logs' / f'log_{str(datetime.datetime.now()).replace(" ","-").replace(":","_")}.csv'
+    df_log.to_csv(log_path)
+
+    df_failures = pd.DataFrame(data=failed_lookups,columns=['ticker','filing_type'])
+    if len(df_failures) > 0:
+        df_failures.to_csv(Path() / 'scraper' / 'logs' / f'failures_{str(datetime.datetime.now()).replace(" ","-").replace(":","_")}.csv')
 
 
 # Start the timer to see how long the program runs
 startTime = time.time()
 
 
-# This is sloppy, but I don't know how to fix it yet.
-# This just needs to be the path to the folder where the scraping code package is stored in. 
-sys.path.append(r'C:\Users\User\OneDrive\Desktop\Code\msba_edgar')
-from ut_msba_edgar_scraper import Downloader
-from ut_msba_edgar_scraper.msba_utils import get_ticker_from_gvkey, get_cik_from_gvkey 
-
-
-# print(get_cik('8264','2004-01-01'))
-# print(get_cik('8264','2004-01-01'))
-# print(get_cik('8264','2004-01-01'))
-
 filing_types = ['10-K','10-Q']
+ratings_df = get_ratings_df()
+ratings_df = ratings_df.iloc[:2]
+gvkeys = ratings_df['gvkey'].unique()
+print(f'unique gvkeys = {len(gvkeys)}')
 
-
-
-start_date = "2000-01-01"
-start_date = "2019-01-01"
-end_date = "2021-01-01"
-
-# This block is here to get info on the universe of stocks we are going to scrape
-stock_df = pd.read_csv('scraper/scraping_universe.csv') # pd.read_csv('scraper/company_data.csv')
-stock_df['datadate'] = pd.to_datetime(stock_df['datadate'])
-stock_df = stock_df[stock_df.datadate >='2000-01-01']
-stock_df = stock_df.dropna()
-stock_df['gvkey'] = stock_df['gvkey'].astype(str) 
-stock_df['cik'] = stock_df['cik'].astype(int).astype(str)
-
-
-
-# Only look at energy sector companies
-# energy_df = stock_df[stock_df['gsector'] == 10]
-# energy_df = energy_df[energy_df.datadate >= start_date]
-# ciks = list(energy_df['cik'].unique())
-
-
-ciks = list(stock_df['cik'].unique())
-ciks = ciks[:20]
-print(len(ciks))
-
-
-consumer_df = pd.read_csv('scraper/consumer_gvkey.csv')
-gvkeys = consumer_df['gvkey'].unique()
-
-
-
+# gvkeys = gvkeys[10:15]
 
 downloader = Downloader("scraper")
 
-log_dict: dict = {'ticker':[],'cik':[],'filing_type':[],'period_end':[],'file_name':[],'url':[],'success':[]}
+log_dict: dict = {'ticker':[],'cik':[],'gvkey':[],'filing_type':[],'period_end':[],'file_name':[],'url':[],'success':[]}
 failed_lookups = []
 
-for ticker in ciks:
-# for ticker in tickers:
-    print(f'Getting cik: "{ticker}"')
+
+for gvkey in gvkeys:
+    print(f'Getting gvkey: "{gvkey}"')
     for filing_type in filing_types:
-        downloader.get2(filing_type, ticker, after=start_date, before=end_date,log_dict=log_dict)
-        # try:
-        #     downloader.get2(filing_type, ticker, after=start_date, before=end_date,log_dict=log_dict)
-        # except:
-        #     print(f'Failed somewhere for: {ticker}-{filing_type}')
-        #     failed_lookups.append([ticker,filing_type])
+        try:
+            downloader.download_to_drive(filing_type, gvkey, log_dict=log_dict,drive=drive)
+            if len(log_dict['cik']) % 50 == 0:
+                save_logs(log_dict,failed_lookups)
+        except:
+            print(f'Failed somewhere for: {gvkey}-{filing_type}')
+            failed_lookups.append([gvkey,filing_type])
 
 
 
-# Save the log to a csv
-df_log = pd.DataFrame(log_dict)
-log_path = Path() / 'scraper' / 'logs' / f'log_{str(datetime.datetime.now()).replace(" ","-").replace(":","_")}.csv'
 
-df_log.to_csv(log_path)
-
-df_failures = pd.DataFrame(data=failed_lookups,columns=['ticker','filing_type'])
-if len(df_failures) > 0:
-    df_failures.to_csv('failures.csv')
-
+save_logs(log_dict, failed_lookups)
 
 executionTime = (time.time() - startTime)
 print('Execution time in minutes: ' + str(executionTime/60))
+
+print('ha')
 
 

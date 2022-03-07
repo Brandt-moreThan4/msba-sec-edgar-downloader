@@ -122,10 +122,8 @@ class Filing:
             time.sleep(SEC_EDGAR_RATE_LIMIT_SLEEP_INTERVAL)
             
         except requests.exceptions.HTTPError as e:  # pragma: no cover
-            print(
-                f"Unable to download report for this filing "
-                f"'{self.filing_details_url}' due to network error: {e}."
-            )
+            pass
+
 
         finally:
             client.close()
@@ -152,11 +150,13 @@ class Filing:
     def download_and_save_filing_to_drive(
         self,
         client: requests.Session,
+        drive,
         resolve_urls: bool = True,
         overwrite:bool= True, # Change this default to False later on
     ) -> None:
 
         """This"""
+        # Exception handling is being done in the function that calls this
 
         # Check to see if the file is already in google drive or if overwrite is ok
 
@@ -179,19 +179,12 @@ class Filing:
                 filing_text = resolve_relative_urls_in_filing(filing_text, self.filing_details_url)
 
             # ------------------- INSERT Google Drive Upload Block here -----------------------------
+            gfile = drive.CreateFile({'parents': [{'id': '11AbSXVZ-r-8fA6jCnPFoWMUMpyntBJD8'}],'title':f'{self.file_name}'})
 
-            # from pydrive.drive import GoogleDrive
-
-            # # Create GoogleDrive instance with authenticated GoogleAuth instance.
-            # drive = GoogleDrive(gauth)
-
-            # # Create GoogleDriveFile instance with title 'Hello.txt'.
-            # file1 = drive.CreateFile({'title': 'Hello.txt'})
-            # file1.Upload() # Upload the file.
-            # print('title: %s, id: %s' % (file1['title'], file1['id']))
-            # # title: Hello.txt, id: {{FILE_ID}}
-
-            # -------------------
+            # Read file and set it as the content of this instance.
+            # gfile.SetContentFile(upload_file)
+            gfile.SetContentString(str(filing_text))
+            gfile.Upload() # Upload the file.
 
             # Prevent rate limiting and don't be a dick to edgar
             time.sleep(SEC_EDGAR_RATE_LIMIT_SLEEP_INTERVAL)
@@ -392,6 +385,8 @@ def resolve_relative_urls_in_filing(filing_text: str, download_url: str) -> str:
 def download_filings(
     filings_to_fetch: List[Filing],
     log_dict:dict,
+    destination:str='local',
+    drive=None,
 ) -> None:
 
     client = requests.Session()
@@ -409,8 +404,14 @@ def download_filings(
             log_dict['file_name'].append(filing.save_path.absolute()) # This actually only would make sense if it is a success
 
             try:
-                filing.download_and_save_filing_html(client)
-                log_dict['success'].append(True)
+                if destination.lower() == 'local':
+                    filing.download_and_save_filing_html(client)
+                    log_dict['success'].append(True)
+                elif destination.lower() == 'drive':
+                    filing.download_and_save_filing_to_drive(client,drive)
+                    log_dict['success'].append(True)
+                else:
+                    raise Exception('Sorry bro, not a valid destination. It shoudld be either "drive" or "local"')
                 
             except requests.exceptions.HTTPError as e:  # pragma: no cover
                 print(

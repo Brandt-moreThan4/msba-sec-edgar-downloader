@@ -32,7 +32,7 @@ class Downloader:
 
     supported_filings: ClassVar[List[str]] = sorted(_SUPPORTED_FILINGS)
 
-    def __init__(self, download_folder: Union[str, Path, None] = None) -> None:
+    def __init__(self, download_folder: Union[str, Path, None] = None, drive=None) -> None:
         """Constructor for the :class:`Downloader` class."""
         if download_folder is None:
             self.download_folder = Path.cwd()
@@ -173,6 +173,28 @@ class Downloader:
         download_filings(filings_to_fetch, log_dict)
 
 
+    def download_to_drive(
+        self,
+        filing_type: str,
+        identifier: str,
+        log_dict: dict,
+        drive:None,
+        amount: Optional[int] = None,
+        after: Optional[str] = None,
+        before: Optional[str] = None,
+        include_amends: bool = False,
+        query: str = "",
+        is_gvkey=True,
+    ) -> int:
+        """ ADD DESCRIPTION HERE
+        """
+
+        filings_to_fetch = self.get_filings(filing_type,identifier,amount,after,before,include_amends,query,is_gvkey)
+            
+        download_filings(filings_to_fetch, log_dict,'drive', drive)
+
+
+
     def test_scraping(
         self,
         filing_type: str,
@@ -202,12 +224,11 @@ class Downloader:
             log_dict['url'].append(filing.filing_details_url)
             log_dict['file_name'].append(filing.save_path.absolute()) # This actually only would make sense if it is a success
             log_dict['gvkey'].append(filing.gvkey)
+            log_dict['success'].append(False) # The default is false
 
             report = filing.get_report(resolve_urls=False,type='raw')
 
-            if report is None:
-                log_dict['success'].append(False)
-            else:
-                log_dict['success'].append(True)
+            if report is not None:
+                log_dict['success'][-1] = True
                     
 

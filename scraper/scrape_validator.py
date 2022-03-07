@@ -22,10 +22,11 @@ startTime = time.time()
 
 filing_types = ['10-K','10-Q']
 ratings_df = get_ratings_df()
+ratings_df = ratings_df.loc[25226:]
 gvkeys = ratings_df['gvkey'].unique()
 print(f'unique gvkeys = {len(gvkeys)}')
 
-gvkeys = gvkeys[10:15]
+# gvkeys = gvkeys[10:15]
 
 downloader = Downloader("scraper")
 
@@ -36,15 +37,13 @@ failed_lookups = []
 for gvkey in gvkeys:
     print(f'Getting gvkey: "{gvkey}"')
     for filing_type in filing_types:
-        
-        if len(log_dict['cik']) % 250 == 0:
-             save_log(log_dict)
         try:
             downloader.test_scraping(filing_type, gvkey, log_dict=log_dict)
+            if len(log_dict['cik']) % 50 == 0:
+                save_log(log_dict)
         except:
             print(f'Failed somewhere for: {gvkey}-{filing_type}')
             failed_lookups.append([gvkey,filing_type])
-
 
 
 
@@ -62,5 +61,7 @@ if len(df_failures) > 0:
 
 executionTime = (time.time() - startTime)
 print('Execution time in minutes: ' + str(executionTime/60))
+
+print('ha')
 
 
