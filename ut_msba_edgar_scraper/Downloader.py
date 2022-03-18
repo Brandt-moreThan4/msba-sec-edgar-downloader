@@ -64,8 +64,10 @@ class Downloader:
         if is_gvkey: # If the identifier is a gvkey, then we first want to convert it to  a CIK
             gvkey = identifier
 
-            identifier = get_cik_from_gvkey(identifier,date=TODAYS_DATE)
-            
+            try: 
+                identifier = get_cik_from_gvkey(identifier,date=TODAYS_DATE)
+            except:
+                return [] # If there is no gvkey, then return an exmpty list
 
         identifier = str(identifier).strip().upper()
 
@@ -135,16 +137,19 @@ class Downloader:
 
 
         for filing in filings_to_fetch:
-            filing.report_type = filing_type
-            filing.file_name = (f'{filing.cik}_{filing.period_end_date}_{filing.report_type}_{filing.accession_number}.html')
-            filing.save_path = self.download_folder / ROOT_SAVE_FOLDER_NAME / filing.file_name
-            filing.gvkey = gvkey
+            filing.gvkey = gvkey.zfill(10)
 
             if filing.gvkey is None:
                 try:
-                    filing.gvkey = get_gvkey_from_cik(filing.cik, filing.period_end_date)
+                    filing.gvkey = str(get_gvkey_from_cik(filing.cik, filing.period_end_date)).zfill(10)
                 except:
                     pass
+
+            filing.report_type = filing_type # Cahnge this to be what is grabbed from the hit
+            # filing.file_name = (f'{filing.cik}_{filing.gvkey}_{filing.period_end_date}_{filing.report_type}_{filing.accession_number}.html')
+            filing.file_name = (f'{filing.gvkey}_{filing.period_end_date}_{filing.report_type}_{filing.accession_number}.html')
+            filing.save_path = self.download_folder / ROOT_SAVE_FOLDER_NAME / filing.file_name
+            
 
 
         filings_to_fetch = list(filter(lambda x: x.data_date <= pd_before, filings_to_fetch))
@@ -164,7 +169,7 @@ class Downloader:
         query: str = "",
         is_gvkey=True,
     ) -> int:
-        """ ADD DESCRIPTION HERE
+        """ downloads filings to local
 
         """
 

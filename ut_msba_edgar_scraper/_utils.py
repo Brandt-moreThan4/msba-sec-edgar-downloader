@@ -45,9 +45,11 @@ class Filing:
         self.report_type = None
         self.gvkey = None
         self.ticker = None
+        self.hit = None
+        self.file_date = None
     
     def __repr__(self) -> str:
-        return f'{self.cik}_{self.period_end_date}_{self.report_type}'
+        return f'{self.gvkey}_{self.period_end_date}_{self.report_type}'
 
     def __str__(self) -> str:
         return str(self.edgar_name)
@@ -77,7 +79,7 @@ class Filing:
             }
 
             # This is what actually downloads the html from Edgar
-            resp = client.get(self.filing_details_url, headers=headers)
+            resp = client.get(self.filing_details_url, headers=headers,timeout=10)
             resp.raise_for_status()
             filing_text = resp.content
 
@@ -99,7 +101,9 @@ class Filing:
         """ type options are 'soup, raw, and text'. This returns 'none' if the scraping fails. """
 
         client = requests.Session()
-        client.mount("http://", HTTPAdapter(max_retries=retries))
+        adapter = HTTPAdapter(max_retries=retries)
+        adapter.max_retries.respect_retry_after_header = False
+        client.mount("http://", adapter)
 
         filing_text = None # Return none if the scraping fails.
 
@@ -111,7 +115,7 @@ class Filing:
 
         try:
              # This is what actually downloads the html from Edgar
-            resp = client.get(self.filing_details_url, headers=headers)
+            resp = client.get(self.filing_details_url, headers=headers,timeout=10)
             resp.raise_for_status()
             filing_text = resp.content
 
@@ -170,7 +174,7 @@ class Filing:
             }
 
             # This is what actually downloads the html from Edgar
-            resp = client.get(self.filing_details_url, headers=headers)
+            resp = client.get(self.filing_details_url, headers=headers,timeout=10)
             resp.raise_for_status()
             filing_text = resp.content
 
@@ -241,8 +245,10 @@ def form_request_payload(
 def build_filing_metadata_from_hit(hit: dict) -> Filing:
 
     filing = Filing()
+    filing.hit = hit
     # The "_id" items contains the important detail we need to figure out the url
     filing.accession_number, filing_details_filename = hit["_id"].split(":", 1)
+
 
     # Company CIK should be last in the CIK list. This list may also include
     # the CIKs of executives carrying out insider transactions like in form 4.
@@ -250,6 +256,7 @@ def build_filing_metadata_from_hit(hit: dict) -> Filing:
     accession_number_no_dashes = filing.accession_number.replace("-", "", 2) # We need the accession number without dashes to build url below
     filing.period_end_date = hit['_source']['period_ending']
     filing.edgar_name = hit["_source"]['display_names'][-1] # This contains a list of display names
+    filing.file_date = hit["_source"]['file_date']
 
 
     submission_base_url = (f"{SEC_EDGAR_ARCHIVES_BASE_URL}/{filing.cik}/{accession_number_no_dashes}")
@@ -261,8 +268,8 @@ def build_filing_metadata_from_hit(hit: dict) -> Filing:
     filing.filing_details_url = f"{submission_base_url}/{filing_details_filename}"
 
     # when we save the file, we will want to save it as html
-    filing_details_filename_extension = Path(filing_details_filename).suffix.replace( "htm", "html")
-    filing_details_filename = (f"{FILING_DETAILS_FILENAME_STEM}{filing_details_filename_extension}")
+    # filing_details_filename_extension = Path(filing_details_filename).suffix.replace( "htm", "html")
+    # filing_details_filename = (f"{FILING_DETAILS_FILENAME_STEM}{filing_details_filename_extension}")
 
     return filing
 
@@ -283,7 +290,6 @@ def build_filings(
 
     client = requests.Session()
     client.mount("http://", HTTPAdapter(max_retries=retries))
-    # client.mount("https://", HTTPAdapter(max_retries=retries)) # Redundant? Delete this
     
     try:
         while len(filings_to_fetch) < num_filings_to_download:
@@ -390,7 +396,10 @@ def download_filings(
 ) -> None:
 
     client = requests.Session()
-    client.mount("http://", HTTPAdapter(max_retries=retries))
+    adapter = HTTPAdapter(max_retries=retries)
+    adapter.max_retries.respect_retry_after_header = False
+    client.mount("http://", adapter)
+    
 
     try:
         for filing in filings_to_fetch:
@@ -402,6 +411,7 @@ def download_filings(
             log_dict['filing_type'].append(filing.report_type)
             log_dict['url'].append(filing.filing_details_url)
             log_dict['file_name'].append(filing.file_name) # This actually only would make sense if it is a success
+            log_dict['gvkey'].append(filing.gvkey) # This actually only would make sense if it is a success
 
             try:
                 if destination.lower() == 'local':
@@ -432,7 +442,9 @@ def test_file_grab(
 ) -> None:
 
     client = requests.Session()
-    client.mount("http://", HTTPAdapter(max_retries=retries))
+    adapter = HTTPAdapter(max_retries=retries)
+    adapter.max_retries.respect_retry_after_header = False
+    client.mount("http://", adapter)
 
     try:
         for filing in filings_to_fetch:
