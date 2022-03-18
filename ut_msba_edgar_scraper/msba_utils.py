@@ -101,3 +101,5 @@ def get_ratings_df() -> pd.DataFrame:
 
     return ratings_df
 
+
+

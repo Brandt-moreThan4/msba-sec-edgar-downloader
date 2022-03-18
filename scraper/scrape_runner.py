@@ -1,8 +1,7 @@
-# from cv2 import CHAIN_APPROX_TC89_KCOS
 import pandas as pd
 from pathlib import Path
 import sys
-import datetime
+
 import pandas as pd
 import time
 
@@ -10,22 +9,14 @@ sys.path.append(r'C:\Users\User\OneDrive\Desktop\Code\msba_edgar')
 from ut_msba_edgar_scraper import Downloader
 from ut_msba_edgar_scraper.msba_utils import get_ratings_df
 
+from utils import save_logs
+
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 
+# Authorization to make sure we can 
 gauth = GoogleAuth()           
 drive = GoogleDrive(gauth)  
-
-
-
-def save_logs(log_dict:dict,failed_lookups):
-    df_log = pd.DataFrame(log_dict)
-    log_path = Path() / 'scraper' / 'logs' / f'log_{str(datetime.datetime.now()).replace(" ","-").replace(":","_")}.csv'
-    df_log.to_csv(log_path)
-
-    df_failures = pd.DataFrame(data=failed_lookups,columns=['ticker','filing_type'])
-    if len(df_failures) > 0:
-        df_failures.to_csv(Path() / 'scraper' / 'logs' / f'failures_{str(datetime.datetime.now()).replace(" ","-").replace(":","_")}.csv')
 
 
 # Start the timer to see how long the program runs
@@ -51,13 +42,14 @@ for gvkey in gvkeys:
     for filing_type in filing_types:
         try:
             downloader.download_to_drive(filing_type, gvkey, log_dict=log_dict,drive=drive)
-            if len(log_dict['cik']) % 50 == 0:
+            if len(log_dict['cik']) % 30 == 0:
                 save_logs(log_dict,failed_lookups)
         except:
             print(f'Failed somewhere for: {gvkey}-{filing_type}')
             failed_lookups.append([gvkey,filing_type])
 
 
+# g
 
 
 save_logs(log_dict, failed_lookups)

@@ -10,10 +10,7 @@ sys.path.append(r'C:\Users\User\OneDrive\Desktop\Code\msba_edgar')
 from ut_msba_edgar_scraper import Downloader
 from ut_msba_edgar_scraper.msba_utils import get_ratings_df, get_ticker_from_gvkey, get_cik_from_gvkey 
 
-def save_log(log_dict:dict):
-    df_log = pd.DataFrame(log_dict)
-    log_path = Path() / 'scraper' / 'logs' / f'log_{str(datetime.datetime.now()).replace(" ","-").replace(":","_")}.csv'
-    df_log.to_csv(log_path)
+from utils import save_logs
 
 
 # Start the timer to see how long the program runs
@@ -40,7 +37,7 @@ for gvkey in gvkeys:
         try:
             downloader.test_scraping(filing_type, gvkey, log_dict=log_dict)
             if len(log_dict['cik']) % 50 == 0:
-                save_log(log_dict)
+                save_logs(log_dict)
         except:
             print(f'Failed somewhere for: {gvkey}-{filing_type}')
             failed_lookups.append([gvkey,filing_type])

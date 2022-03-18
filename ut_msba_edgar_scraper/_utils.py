@@ -401,7 +401,7 @@ def download_filings(
             log_dict['period_end'].append(filing.period_end_date)
             log_dict['filing_type'].append(filing.report_type)
             log_dict['url'].append(filing.filing_details_url)
-            log_dict['file_name'].append(filing.save_path.absolute()) # This actually only would make sense if it is a success
+            log_dict['file_name'].append(filing.file_name) # This actually only would make sense if it is a success
 
             try:
                 if destination.lower() == 'local':

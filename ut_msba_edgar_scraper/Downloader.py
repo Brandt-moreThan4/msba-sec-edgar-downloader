@@ -207,7 +207,7 @@ class Downloader:
         query: str = "",
         is_gvkey=True,
     ) -> int:
-        """ ADD DESCRIPTION HERE
+        """ Test to see if the reports are possible to grab.
 
         """
         
