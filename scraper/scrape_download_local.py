@@ -36,7 +36,8 @@ gvkeys = ['1224']
 
 downloader = Downloader("scraper")
 
-log_dict: dict = {'ticker':[],'cik':[],'gvkey':[],'filing_type':[],'period_end':[],'file_name':[],'url':[],'success':[]}
+log_list: dict = {'ticker':[],'cik':[],'gvkey':[],'filing_type':[],'period_end':[],'file_name':[],'url':[],'success':[]}
+log_list: list = []
 failed_lookups = []
 
 
@@ -44,17 +45,18 @@ for gvkey in gvkeys:
     print(f'Getting gvkey: "{gvkey}"')
     for filing_type in filing_types:
         try:
-            downloader.get(filing_type, gvkey, log_dict=log_dict)
-            if len(log_dict['cik']) % 30 == 0:
-                save_logs(log_dict,failed_lookups)
+            downloader.get(filing_type, gvkey, log_list=log_list)
+            if len(log_list['cik']) % 30 == 0:
+                save_logs(log_list,failed_lookups)
         except:
             print(f'Failed somewhere for: {gvkey}-{filing_type}')
             failed_lookups.append([gvkey,filing_type])
 
-# g
 
 
-save_logs(log_dict, failed_lookups)
+
+save_logs(log_list, failed_lookups)
+
 
 executionTime = (time.time() - startTime)
 print('Execution time in minutes: ' + str(executionTime/60))

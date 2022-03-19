@@ -5,7 +5,7 @@ import datetime
 
 # sys.path.append(r'C:\Users\User\OneDrive\Desktop\Code\msba_edgar')
 
-def save_logs(log_dict:dict,failed_lookups):
+def save_logs(log_dict:dict,failed_lookups,col:list=None):
     df_log = pd.DataFrame(log_dict)
     log_path = Path() / 'scraper' / 'logs' / f'log_{str(datetime.datetime.now()).replace(" ","-").replace(":","_")}.csv'
     df_log.to_csv(log_path)

@@ -161,7 +161,7 @@ class Downloader:
         self,
         filing_type: str,
         identifier: str,
-        log_dict: dict,
+        log_list: dict,
         amount: Optional[int] = None,
         after: Optional[str] = None,
         before: Optional[str] = None,
@@ -174,8 +174,11 @@ class Downloader:
         """
 
         filings_to_fetch = self.get_filings(filing_type,identifier,amount,after,before,include_amends,query,is_gvkey)
+
+        if len(log_list) == 0 and len(filings_to_fetch) > 0:
+            log_list.append(list(filings_to_fetch[0].__dict__.keys()))
             
-        download_filings(filings_to_fetch, log_dict)
+        download_filings(filings_to_fetch, log_list)
 
 
     def download_to_drive(
@@ -195,6 +198,9 @@ class Downloader:
         """
 
         filings_to_fetch = self.get_filings(filing_type,identifier,amount,after,before,include_amends,query,is_gvkey)
+
+        # if len(filings_to_fetch) > 0:
+        #     log_dict.appen(list(filings_to_fetch[0].__dict__.keys()))
             
         download_filings(filings_to_fetch, log_dict,'drive', drive)
 
