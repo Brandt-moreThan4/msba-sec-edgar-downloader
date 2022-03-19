@@ -38,6 +38,7 @@ class Filing:
         self.filing_details_url = None
         self.period_end_date = None
         self.cik = None
+        self.cik_lookup = None
         self.edgar_name = None
         self.file_name = None
         self.file_name_txt = None
@@ -198,6 +199,44 @@ class Filing:
             # Prevent rate limiting and don't be a dick to edgar
             time.sleep(SEC_EDGAR_RATE_LIMIT_SLEEP_INTERVAL)
 
+    def download_and_save_filing_text_to_drive(
+        self,
+        client: requests.Session,
+        drive,
+        resolve_urls: bool = True,
+        overwrite:bool= True, # Change this default to False later on
+    ) -> None:
+
+        """Only save the filing text to drive. not html"""
+        # Exception handling is being done in the function that calls this
+
+        # Check to see if the file is already in google drive or if overwrite is ok
+        if True or overwrite: # or file does not exists in drive already <-- add that in later
+            # If so, then do this good stuff
+            # header is needed to declare who you are to Edgar's server
+
+            headers = {
+                "User-Agent": generate_random_user_agent(),
+                "Accept-Encoding": "gzip, deflate",
+                "Host": "www.sec.gov",
+            }
+
+            # This is what actually downloads the html from Edgar
+            resp = client.get(self.filing_details_url, headers=headers,timeout=10)
+            resp.raise_for_status()
+            filing_html = resp.content
+
+            filing_text = BeautifulSoup(filing_html,"lxml").get_text()
+
+            # gfile = drive.CreateFile({'parents': [{'id': '1PJJApvb0yby5zCJ2XRwI_OjYhQMRqCOZ'}],'title':f'{self.file_name}','mimeType':'html'})
+            gfile = drive.CreateFile({'parents': [{'id': '1PJJApvb0yby5zCJ2XRwI_OjYhQMRqCOZ'}],'title':f'{self.file_name_txt}'})
+            # Read file and set it as the content of this instance.
+            # gfile.SetContentFile(upload_file)
+            gfile.SetContentString(filing_text) # Is converting to string the best option?
+            gfile.Upload() # Upload the file.
+
+            # Prevent rate limiting and don't be a dick to edgar
+            time.sleep(SEC_EDGAR_RATE_LIMIT_SLEEP_INTERVAL)
 
 
 # Object for generating fake user-agent strings
@@ -411,7 +450,8 @@ def download_filings(
                     filing.download_and_save_filing_html(client)
                     this_filing_log.append(True)
                 elif destination.lower() == 'drive':
-                    filing.download_and_save_filing_to_drive(client,drive)
+                    # filing.download_and_save_filing_to_drive(client,drive)
+                    filing.download_and_save_filing_text_to_drive(client,drive)
                     this_filing_log.append(True)
                 else:
                     this_filing_log.append(False)

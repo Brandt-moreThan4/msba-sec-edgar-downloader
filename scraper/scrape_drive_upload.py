@@ -32,7 +32,9 @@ print(f'unique gvkeys = {len(gvkeys)}')
 
 # gvkeys = [str(x) for x in [1004,1238, 1848, 2697]]
 # gvkeys = [str(x) for x in [1238, 1848, 2697]]
-gvkeys = ['1224']
+
+# gvkeys = ['1224']
+gvkeys = ['1010']
 
 downloader = Downloader("scraper")
 
@@ -47,7 +49,7 @@ for gvkey in gvkeys:
         # downloader.get(filing_type, gvkey, log_list=log_list)
         downloader.download_to_drive(filing_type, gvkey, log_list=log_list,drive=drive)
         if len(log_list) % 30 == 0:
-            save_logs(log_list,failed_lookups)
+            save_logs(log_list,failed_lookups,startTime=startTime)
         # except:
         #     print(f'Failed somewhere for: {gvkey}-{filing_type}')
         #     failed_lookups.append([gvkey,filing_type])
@@ -55,7 +57,7 @@ for gvkey in gvkeys:
 
 
 
-save_logs(log_list, failed_lookups)
+save_logs(log_list, failed_lookups,startTime=startTime)
 
 
 executionTime = (time.time() - startTime)

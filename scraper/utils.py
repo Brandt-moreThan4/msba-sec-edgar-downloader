@@ -2,10 +2,11 @@ from pathlib import Path
 import pandas as pd
 import sys
 import datetime
+import time
 
 # sys.path.append(r'C:\Users\User\OneDrive\Desktop\Code\msba_edgar')
 
-def save_logs(log_list:dict,failed_lookups,col:list=None):
+def save_logs(log_list:dict,failed_lookups,col:list=None, startTime=0):
 
     if len(log_list) > 1:
         df_log = pd.DataFrame(data=log_list[1:],columns=log_list[0])
@@ -15,6 +16,9 @@ def save_logs(log_list:dict,failed_lookups,col:list=None):
     df_failures = pd.DataFrame(data=failed_lookups,columns=['ticker','filing_type'])
     if len(df_failures) > 0:
         df_failures.to_csv(Path() / 'scraper' / 'logs' / f'failures_{str(datetime.datetime.now()).replace(" ","-").replace(":","_")}.csv')
+
+    executionTime = (time.time() - startTime)
+    print('Execution time in minutes: ' + str(executionTime/60))
 
 
 def build_file_info_csv():
