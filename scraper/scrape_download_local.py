@@ -36,7 +36,6 @@ gvkeys = ['1224']
 
 downloader = Downloader("scraper")
 
-log_list: dict = {'ticker':[],'cik':[],'gvkey':[],'filing_type':[],'period_end':[],'file_name':[],'url':[],'success':[]}
 log_list: list = []
 failed_lookups = []
 

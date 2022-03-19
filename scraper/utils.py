@@ -5,10 +5,12 @@ import datetime
 
 # sys.path.append(r'C:\Users\User\OneDrive\Desktop\Code\msba_edgar')
 
-def save_logs(log_dict:dict,failed_lookups,col:list=None):
-    df_log = pd.DataFrame(log_dict)
-    log_path = Path() / 'scraper' / 'logs' / f'log_{str(datetime.datetime.now()).replace(" ","-").replace(":","_")}.csv'
-    df_log.to_csv(log_path)
+def save_logs(log_list:dict,failed_lookups,col:list=None):
+
+    if len(log_list) > 1:
+        df_log = pd.DataFrame(data=log_list[1:],columns=log_list[0])
+        log_path = Path() / 'scraper' / 'logs' / f'log_{str(datetime.datetime.now()).replace(" ","-").replace(":","_")}.csv'
+        df_log.to_csv(log_path)
 
     df_failures = pd.DataFrame(data=failed_lookups,columns=['ticker','filing_type'])
     if len(df_failures) > 0:

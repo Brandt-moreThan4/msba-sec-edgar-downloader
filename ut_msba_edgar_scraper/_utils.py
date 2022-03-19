@@ -36,17 +36,17 @@ class Filing:
         self.accession_number = None
         self.full_submission_url = None
         self.filing_details_url = None
-        self.filing_details_filename = None
         self.period_end_date = None
         self.cik = None
         self.edgar_name = None
         self.file_name = None
+        self.file_name_txt = None
         self.save_path = None
         self.report_type = None
         self.gvkey = None
         self.ticker = None
-        self.hit = None
         self.file_date = None
+        self.hit = None
     
     def __repr__(self) -> str:
         return f'{self.gvkey}_{self.period_end_date}_{self.report_type}'
@@ -166,10 +166,10 @@ class Filing:
         # Exception handling is being done in the function that calls this
 
         # Check to see if the file is already in google drive or if overwrite is ok
-
-        if overwrite:
+        if True or overwrite: # or file does not exists in drive already <-- add that in later
             # If so, then do this good stuff
             # header is needed to declare who you are to Edgar's server
+
             headers = {
                 "User-Agent": generate_random_user_agent(),
                 "Accept-Encoding": "gzip, deflate",
@@ -179,18 +179,20 @@ class Filing:
             # This is what actually downloads the html from Edgar
             resp = client.get(self.filing_details_url, headers=headers,timeout=10)
             resp.raise_for_status()
-            filing_text = resp.content
+            filing_html = resp.content
 
              # Only resolve URLs in HTML files
             if resolve_urls and self.save_path.suffix == ".html":
-                filing_text = resolve_relative_urls_in_filing(filing_text, self.filing_details_url)
+                filing_html = resolve_relative_urls_in_filing(filing_html, self.filing_details_url)
 
-            # ------------------- INSERT Google Drive Upload Block here -----------------------------
-            gfile = drive.CreateFile({'parents': [{'id': '11AbSXVZ-r-8fA6jCnPFoWMUMpyntBJD8'}],'title':f'{self.file_name}'})
+            filing_text = BeautifulSoup(filing_html,"lxml").get_text()
 
+
+            # gfile = drive.CreateFile({'parents': [{'id': '1PJJApvb0yby5zCJ2XRwI_OjYhQMRqCOZ'}],'title':f'{self.file_name}','mimeType':'html'})
+            gfile = drive.CreateFile({'parents': [{'id': '1PJJApvb0yby5zCJ2XRwI_OjYhQMRqCOZ'}],'title':f'{self.file_name_txt}'})
             # Read file and set it as the content of this instance.
             # gfile.SetContentFile(upload_file)
-            gfile.SetContentString(str(filing_text))
+            gfile.SetContentString(filing_text) # Is converting to string the best option?
             gfile.Upload() # Upload the file.
 
             # Prevent rate limiting and don't be a dick to edgar
@@ -408,12 +410,11 @@ def download_filings(
                 if destination.lower() == 'local':
                     filing.download_and_save_filing_html(client)
                     this_filing_log.append(True)
-                    # log_dict['success'].append(True)
                 elif destination.lower() == 'drive':
                     filing.download_and_save_filing_to_drive(client,drive)
                     this_filing_log.append(True)
-                    # log_dict['success'].append(True)
                 else:
+                    this_filing_log.append(False)
                     raise Exception('Sorry bro, not a valid destination. It should be either "drive" or "local"')
                 
             except requests.exceptions.HTTPError as e:  # pragma: no cover
@@ -431,41 +432,11 @@ def download_filings(
 
 
 
-# def test_file_grab(
-#     filings_to_fetch: List[Filing],
-#     log_dict:dict,
-# ) -> None:
-
-#     client = requests.Session()
-#     adapter = HTTPAdapter(max_retries=retries)
-#     adapter.max_retries.respect_retry_after_header = False
-#     client.mount("http://", adapter)
-
-#     try:
-#         for filing in filings_to_fetch:
-
-#             # Record the attempt in the log
-#             log_dict['ticker'].append(filing.edgar_name)
-#             log_dict['cik'].append(filing.cik) # This will capture the last cik from the query. May not match the orginally input ticker
-#             log_dict['period_end'].append(filing.period_end_date)
-#             log_dict['filing_type'].append(filing.report_type)
-#             log_dict['url'].append(filing.filing_details_url)
-#             log_dict['file_name'].append(filing.save_path.absolute()) # This actually only would make sense if it is a success
-
-#             try:
-#                 filing.download_and_save_filing_html(client)
-#                 log_dict['success'].append(True)
-                
-#             except requests.exceptions.HTTPError as e:  # pragma: no cover
-#                 print(
-#                     f"Skipping filing detail download for "
-#                     f"'{filing.accession_number}' due to network error: {e}."
-#                 )
-
-#                 log_dict['success'].append(False)
-
-#     finally:
-#         client.close()
+def test_file_grab(
+    filings_to_fetch: List[Filing],
+    log_dict:dict,
+) -> None:
+    pass
 
 
 

@@ -24,39 +24,35 @@ startTime = time.time()
 
 
 filing_types = ['10-K','10-Q']
-filing_types = ['10-K']
-ratings_df = get_ratings_df() # this is our scraping universe
-# ratings_df = ratings_df.iloc[:2]
-gvkeys = ratings_df['gvkey'].unique()[:3]
+ratings_df = get_ratings_df()
+ratings_df = ratings_df.iloc[:2]
+gvkeys = ratings_df['gvkey'].unique()
 print(f'unique gvkeys = {len(gvkeys)}')
 
-# gvkeys = [str(x) for x in [1004,1238, 1848, 2697]]
-# gvkeys = [str(x) for x in [1238, 1848, 2697]]
-gvkeys = ['1224']
+# gvkeys = gvkeys[10:15]
 
 downloader = Downloader("scraper")
 
-log_list: list = []
+log_dict: dict = {'ticker':[],'cik':[],'gvkey':[],'filing_type':[],'period_end':[],'file_name':[],'url':[],'success':[]}
 failed_lookups = []
 
 
 for gvkey in gvkeys:
     print(f'Getting gvkey: "{gvkey}"')
     for filing_type in filing_types:
-        # try:
-        # downloader.get(filing_type, gvkey, log_list=log_list)
-        downloader.download_to_drive(filing_type, gvkey, log_list=log_list,drive=drive)
-        if len(log_list) % 30 == 0:
-            save_logs(log_list,failed_lookups)
-        # except:
-        #     print(f'Failed somewhere for: {gvkey}-{filing_type}')
-        #     failed_lookups.append([gvkey,filing_type])
+        try:
+            downloader.download_to_drive(filing_type, gvkey, log_list=log_dict,drive=drive)
+            if len(log_dict['cik']) % 30 == 0:
+                save_logs(log_dict,failed_lookups)
+        except:
+            print(f'Failed somewhere for: {gvkey}-{filing_type}')
+            failed_lookups.append([gvkey,filing_type])
 
 
+# g
 
 
-save_logs(log_list, failed_lookups)
-
+save_logs(log_dict, failed_lookups)
 
 executionTime = (time.time() - startTime)
 print('Execution time in minutes: ' + str(executionTime/60))

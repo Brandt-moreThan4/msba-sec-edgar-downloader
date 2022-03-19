@@ -148,6 +148,7 @@ class Downloader:
             filing.report_type = filing_type # Cahnge this to be what is grabbed from the hit
             # filing.file_name = (f'{filing.cik}_{filing.gvkey}_{filing.period_end_date}_{filing.report_type}_{filing.accession_number}.html')
             filing.file_name = (f'{filing.gvkey}_{filing.period_end_date}_{filing.report_type}_{filing.accession_number}.html')
+            filing.file_name_txt = (f'{filing.gvkey}_{filing.period_end_date}_{filing.report_type}_{filing.accession_number}.txt')
             filing.save_path = self.download_folder / ROOT_SAVE_FOLDER_NAME / filing.file_name
             
 
@@ -176,7 +177,7 @@ class Downloader:
         filings_to_fetch = self.get_filings(filing_type,identifier,amount,after,before,include_amends,query,is_gvkey)
 
         if len(log_list) == 0 and len(filings_to_fetch) > 0:
-            log_list.append(list(filings_to_fetch[0].__dict__.keys()))
+            log_list.append(list(filings_to_fetch[0].__dict__.keys())+['Success'])
             
         download_filings(filings_to_fetch, log_list)
 
@@ -185,7 +186,7 @@ class Downloader:
         self,
         filing_type: str,
         identifier: str,
-        log_dict: dict,
+        log_list: dict,
         drive:None,
         amount: Optional[int] = None,
         after: Optional[str] = None,
@@ -199,10 +200,11 @@ class Downloader:
 
         filings_to_fetch = self.get_filings(filing_type,identifier,amount,after,before,include_amends,query,is_gvkey)
 
-        # if len(filings_to_fetch) > 0:
-        #     log_dict.appen(list(filings_to_fetch[0].__dict__.keys()))
+        if len(log_list) == 0 and len(filings_to_fetch) > 0:
+            log_list.append(list(filings_to_fetch[0].__dict__.keys())+['Success'])
             
-        download_filings(filings_to_fetch, log_dict,'drive', drive)
+            
+        download_filings(filings_to_fetch, log_list,'drive', drive)
 
 
 
