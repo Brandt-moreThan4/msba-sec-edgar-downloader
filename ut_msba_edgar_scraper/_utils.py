@@ -14,6 +14,8 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import pandas as pd
 
+from .msba_utils import filing_in_drive
+
 from ._constants import (
     DATE_FORMAT_TOKENS,
     FILING_DETAILS_FILENAME_STEM,
@@ -83,7 +85,7 @@ class Filing:
             }
 
             # This is what actually downloads the html from Edgar
-            resp = client.get(self.filing_details_url, headers=headers,timeout=10)
+            resp = client.get(self.filing_details_url, headers=headers,timeout=1)
             resp.raise_for_status()
             filing_text = resp.content
 
@@ -119,7 +121,7 @@ class Filing:
 
         try:
              # This is what actually downloads the html from Edgar
-            resp = client.get(self.filing_details_url, headers=headers,timeout=10)
+            resp = client.get(self.filing_details_url, headers=headers,timeout=1)
             resp.raise_for_status()
             filing_text = resp.content
 
@@ -149,11 +151,6 @@ class Filing:
 
         return None
 
-    def test_report_download(self) -> bool:
-        self.get_report()
-
-        return None
-
 
     def download_and_save_filing_to_drive(
         self,
@@ -178,7 +175,7 @@ class Filing:
             }
 
             # This is what actually downloads the html from Edgar
-            resp = client.get(self.filing_details_url, headers=headers,timeout=10)
+            resp = client.get(self.filing_details_url, headers=headers,timeout=1)
             resp.raise_for_status()
             filing_html = resp.content
 
@@ -188,9 +185,8 @@ class Filing:
 
             filing_text = BeautifulSoup(filing_html,"lxml").get_text()
 
-
-            # gfile = drive.CreateFile({'parents': [{'id': '1PJJApvb0yby5zCJ2XRwI_OjYhQMRqCOZ'}],'title':f'{self.file_name}','mimeType':'html'})
-            gfile = drive.CreateFile({'parents': [{'id': '1PJJApvb0yby5zCJ2XRwI_OjYhQMRqCOZ'}],'title':f'{self.file_name_txt}'})
+            # gfile = drive.CreateFile({'parents': [{'id': '1PJJApvb0yby5zCJ2XRwI_OjYhQMRqCOZ'}],'title':f'{self.file_name_txt}'}) # this is the actual edgar_filings folder
+            gfile = drive.CreateFile({'parents': [{'id': '1bCHSa7AO0jfQRoKYFisA_pgzhsz2uKbs'}],'title':f'{self.file_name_txt}'}) # this is the test folder
             # Read file and set it as the content of this instance.
             # gfile.SetContentFile(upload_file)
             gfile.SetContentString(filing_text) # Is converting to string the best option?
@@ -202,41 +198,35 @@ class Filing:
     def download_and_save_filing_text_to_drive(
         self,
         client: requests.Session,
-        drive,
-        resolve_urls: bool = True,
-        overwrite:bool= True, # Change this default to False later on
+        drive
     ) -> None:
 
         """Only save the filing text to drive. not html"""
         # Exception handling is being done in the function that calls this
+        
+        # header is needed to declare who you are to Edgar's server
+        headers = {
+            "User-Agent": generate_random_user_agent(),
+            "Accept-Encoding": "gzip, deflate",
+            "Host": "www.sec.gov",
+        }
 
-        # Check to see if the file is already in google drive or if overwrite is ok
-        if True or overwrite: # or file does not exists in drive already <-- add that in later
-            # If so, then do this good stuff
-            # header is needed to declare who you are to Edgar's server
+        # This is what actually downloads the html from Edgar
+        resp = client.get(self.filing_details_url, headers=headers,timeout=1) # If you don't specifiy a timeout value, you could get stuck
+        resp.raise_for_status()
+        filing_html = resp.content
 
-            headers = {
-                "User-Agent": generate_random_user_agent(),
-                "Accept-Encoding": "gzip, deflate",
-                "Host": "www.sec.gov",
-            }
+        filing_text = BeautifulSoup(filing_html,"lxml").get_text()
 
-            # This is what actually downloads the html from Edgar
-            resp = client.get(self.filing_details_url, headers=headers,timeout=10)
-            resp.raise_for_status()
-            filing_html = resp.content
+        # gfile = drive.CreateFile({'parents': [{'id': '1PJJApvb0yby5zCJ2XRwI_OjYhQMRqCOZ'}],'title':f'{self.file_name}','mimeType':'html'})
+        # gfile = drive.CreateFile({'parents': [{'id': '1bCHSa7AO0jfQRoKYFisA_pgzhsz2uKbs'}],'title':f'{self.file_name_txt}'})
+        
+        gfile = drive.CreateFile({'parents': [{'id': '1PJJApvb0yby5zCJ2XRwI_OjYhQMRqCOZ'}],'title':f'{self.file_name_txt}'})
+        gfile.SetContentString(filing_text) 
+        gfile.Upload() # Upload the file.
 
-            filing_text = BeautifulSoup(filing_html,"lxml").get_text()
-
-            # gfile = drive.CreateFile({'parents': [{'id': '1PJJApvb0yby5zCJ2XRwI_OjYhQMRqCOZ'}],'title':f'{self.file_name}','mimeType':'html'})
-            gfile = drive.CreateFile({'parents': [{'id': '1PJJApvb0yby5zCJ2XRwI_OjYhQMRqCOZ'}],'title':f'{self.file_name_txt}'})
-            # Read file and set it as the content of this instance.
-            # gfile.SetContentFile(upload_file)
-            gfile.SetContentString(filing_text) # Is converting to string the best option?
-            gfile.Upload() # Upload the file.
-
-            # Prevent rate limiting and don't be a dick to edgar
-            time.sleep(SEC_EDGAR_RATE_LIMIT_SLEEP_INTERVAL)
+        # Prevent rate limiting and don't be a dick to edgar
+        time.sleep(SEC_EDGAR_RATE_LIMIT_SLEEP_INTERVAL)
 
 
 # Object for generating fake user-agent strings
@@ -292,7 +282,6 @@ def build_filing_metadata_from_hit(hit: dict) -> Filing:
     filing.hit = hit
     # The "_id" items contains the important detail we need to figure out the url
     filing.accession_number, filing_details_filename = hit["_id"].split(":", 1)
-
 
     # Company CIK should be last in the CIK list. This list may also include
     # the CIKs of executives carrying out insider transactions like in form 4.
@@ -428,10 +417,11 @@ def resolve_relative_urls_in_filing(filing_text: str, download_url: str) -> str:
 
 
 
+
 def download_filings(
     filings_to_fetch: List[Filing],
-    log_list:list,
-    destination:str='local',
+    log_df:pd.DataFrame,
+    location:str='local',
     drive=None,
 ) -> None:
 
@@ -443,40 +433,38 @@ def download_filings(
     try:
         for filing in filings_to_fetch:
 
+            if filing_in_drive(filing,log_df):
+                continue # Don't download the report again if we already have it
+                # This is bad code and needs to be refactored. It doesn't distinguish between txt reports and html
+                # It also might be worth filtering out the former failures so that we try them again.
+
             this_filing_log:list = filing.as_list()
 
             try:
-                if destination.lower() == 'local':
+                if location.lower() == 'local':
                     filing.download_and_save_filing_html(client)
                     this_filing_log.append(True)
-                elif destination.lower() == 'drive':
-                    # filing.download_and_save_filing_to_drive(client,drive)
+                elif location.lower() == 'drive':
+                    if drive is None:
+                        raise Exception('Yo, you need to provide a drive object to this function if you want to save the filings to the google drive.')
                     filing.download_and_save_filing_text_to_drive(client,drive)
                     this_filing_log.append(True)
                 else:
                     this_filing_log.append(False)
                     raise Exception('Sorry bro, not a valid destination. It should be either "drive" or "local"')
                 
-            except requests.exceptions.HTTPError as e:  # pragma: no cover
+            except Exception as e:  
                 this_filing_log.append(False)
-                print(
-                    f"Skipping filing detail download for "
-                    f"'{filing.accession_number}' due to network error: {e}.")
+                print(f'Error in the attemmpt to download company:{filing.edgar_name} for {filing.file_name}. Exception message = {str(e)}')
 
             finally:
                 # Make sure to record the attempt
-                log_list.append(this_filing_log)
+                new_log_row = pd.Series(data=this_filing_log,index=log_df.columns)
+                log_df.loc[len(log_df)] = new_log_row
+                # log_df = log_df.append(new_log_row,ignore_index=True)
 
     finally:
         client.close()
-
-
-
-def test_file_grab(
-    filings_to_fetch: List[Filing],
-    log_dict:dict,
-) -> None:
-    pass
 
 
 

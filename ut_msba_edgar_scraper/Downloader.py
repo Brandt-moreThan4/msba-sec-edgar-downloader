@@ -1,5 +1,6 @@
 """Provides a :class:`Downloader` class for downloading SEC EDGAR filings."""
 
+from shutil import ExecError
 import sys
 from pathlib import Path
 from typing import ClassVar, List, Optional, Union
@@ -41,6 +42,10 @@ class Downloader:
         else:
             self.download_folder = Path(download_folder).expanduser().resolve()
 
+        if drive is not None:
+            self.drive = drive
+
+
     def get_download_folder(self):
         return self.download_folder
 
@@ -54,18 +59,19 @@ class Downloader:
         before: Optional[str] = TODAYS_DATE, 
         include_amends: bool = False,
         query: str = "",
-        is_gvkey=True,
+        is_gvkey=True, # Honestly, some things might break if you don't set this to True
     ) -> int:
         """ ADD DESCRIPTION HERE"""
+        
 
         # TODAYS_DATE = DEFAULT_BEFORE_DATE.strftime(DATE_FORMAT_TOKENS)
         gvkey = None
 
         if is_gvkey: # If the identifier is a gvkey, then we first want to convert it to  a CIK
-            gvkey = identifier
+            gvkey = str(identifier).zfill(10)
 
             try: 
-                identifier = get_cik_from_gvkey(identifier,date=TODAYS_DATE)
+                identifier = get_cik_from_gvkey(identifier,date=TODAYS_DATE) # identifier is now going to be CIK
             except:
                 return [] # If there is no gvkey, then return an exmpty list
 
@@ -135,15 +141,16 @@ class Downloader:
             query,
         )
 
+        if gvkey is None: # Try to get the gvkey from mapping
+            try:
+                gvkey = gvkey = str(get_gvkey_from_cik(filing.cik, filing.period_end_date)).zfill(10)
+            except:
+                pass
 
         for filing in filings_to_fetch:
-            filing.gvkey = gvkey.zfill(10)
+            # I think the below line is actually bad if unless this function will only accept is_gvkey = Trues.
 
-            if filing.gvkey is None:
-                try:
-                    filing.gvkey = str(get_gvkey_from_cik(filing.cik, filing.period_end_date)).zfill(10)
-                except:
-                    pass
+            filing.gvkey = gvkey # Make sure gvkey is zero padded
 
             filing.report_type = filing_type # Cahnge this to be what is grabbed from the hit
             filing.file_name = (f'{filing.gvkey}_{filing.period_end_date}_{filing.report_type}_{filing.accession_number}.html')
@@ -152,96 +159,37 @@ class Downloader:
             filing.cik_lookup = identifier # This should always be the cik by the time you get here. Assuming you are using gvkey or cik lookup, not ticker.
             
 
-
         filings_to_fetch = list(filter(lambda x: x.data_date <= pd_before, filings_to_fetch))
         filings_to_fetch.sort(key=lambda x: x.data_date) # Make sure it is sorted in ascending order by period end date
             
         return filings_to_fetch
 
-    def get(
+
+    def download_reports(
         self,
         filing_type: str,
         identifier: str,
-        log_list: dict,
+        log_df: pd.DataFrame,
         amount: Optional[int] = None,
         after: Optional[str] = None,
         before: Optional[str] = None,
         include_amends: bool = False,
         query: str = "",
         is_gvkey=True,
-    ) -> int:
-        """ downloads filings to local
-
-        """
-
-        filings_to_fetch = self.get_filings(filing_type,identifier,amount,after,before,include_amends,query,is_gvkey)
-
-        if len(log_list) == 0 and len(filings_to_fetch) > 0:
-            log_list.append(list(filings_to_fetch[0].__dict__.keys())+['Success'])
-            
-        download_filings(filings_to_fetch, log_list)
-
-
-    def download_to_drive(
-        self,
-        filing_type: str,
-        identifier: str,
-        log_list: dict,
-        drive:None,
-        amount: Optional[int] = None,
-        after: Optional[str] = None,
-        before: Optional[str] = None,
-        include_amends: bool = False,
-        query: str = "",
-        is_gvkey=True,
-    ) -> int:
+        location='local',
+    ):
         """ ADD DESCRIPTION HERE
         """
 
         filings_to_fetch = self.get_filings(filing_type,identifier,amount,after,before,include_amends,query,is_gvkey)
 
-        if len(log_list) == 0 and len(filings_to_fetch) > 0:
-            log_list.append(list(filings_to_fetch[0].__dict__.keys())+['success'])
             
-        if len(filings_to_fetch) > 0:
-            download_filings(filings_to_fetch, log_list,'drive', drive)
+        if len(filings_to_fetch) > 0: # We do not need to call the below functions if there are no filings
+            if location == 'drive':
+                download_filings(filings_to_fetch, log_df,'drive', self.drive)
+            elif location =='local':
+                download_filings(filings_to_fetch, log_df)
+            else:
+                raise Exception('Bad destination.')
 
-
-
-    def test_scraping(
-        self,
-        filing_type: str,
-        identifier: str,
-        log_dict: dict,
-        amount: Optional[int] = None,
-        after: Optional[str] = None,
-        before: Optional[str] = None,
-        include_amends: bool = False,
-        query: str = "",
-        is_gvkey=True,
-    ) -> int:
-        """ Test to see if the reports are possible to grab.
-
-        """
-        
-
-        filings_to_fetch = self.get_filings(filing_type,identifier,amount,after,before,include_amends,query,is_gvkey)
-
-        for filing in filings_to_fetch:
-
-            # Record the attempt in the log
-            log_dict['ticker'].append(filing.edgar_name)
-            log_dict['cik'].append(filing.cik) # This will capture the last cik from the query. May not match the orginally input ticker
-            log_dict['period_end'].append(filing.period_end_date)
-            log_dict['filing_type'].append(filing.report_type)
-            log_dict['url'].append(filing.filing_details_url)
-            log_dict['file_name'].append(filing.save_path.absolute()) # This actually only would make sense if it is a success
-            log_dict['gvkey'].append(filing.gvkey)
-            log_dict['success'].append(False) # The default is false
-
-            report = filing.get_report(resolve_urls=False,type='raw')
-
-            if report is not None:
-                log_dict['success'][-1] = True
-                    
 

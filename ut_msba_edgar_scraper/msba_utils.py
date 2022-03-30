@@ -1,17 +1,16 @@
 import pandas as pd
 from pathlib import Path
-import numpy as np
 from datetime import datetime
 # from bs4 import BeautifulSoup
 
-folder_path = Path(__file__).parent
+# folder_path = Path(__file__).parent
 edgar_filing_path = Path().cwd() / 'scraper' / 'sec-edgar-filings'
-company_data_path = folder_path / 'company_data.csv'
+# company_data_path = folder_path / 'company_data.csv'
 
 todays_date = datetime.today().strftime('%Y-%m-%d') # We need this for several lookups later
 
 
-# This block is  used to get the cik-gvkey mapping
+# This block is  used to get the cik-gvkey mapping. 
 stock_mapping_df = pd.read_csv('https://github.com/Brandt-moreThan4/Data/blob/main/company_data.csv?raw=true') 
 stock_mapping_df['datadate'] = pd.to_datetime(stock_mapping_df['datadate'])
 stock_mapping_df = stock_mapping_df[stock_mapping_df.datadate >= '2000-01-01']
@@ -29,8 +28,6 @@ def get_ticker_from_gvkey(gvkey:str, date:str) -> str:
     tickers = list(filtered_df.tic.unique())
 
     return str(tickers[-1]) # Returns the last cik. Just in case there are multiple, which there shouldn't be
-
-# get_ticker('11506','2004-01-01')
 
 
 def gvkey_exists(gvkey:str) -> bool:
@@ -70,7 +67,6 @@ def get_cik_from_gvkey(gvkey:str, date:str=todays_date) -> str:
     return cik 
 
 
-
 def get_gvkey_from_cik(cik:str, date:str=todays_date):
     cik = str(cik).zfill(10) # Needs to be a string to be conistent with other dataframes
 
@@ -88,7 +84,6 @@ def get_gvkey_from_cik(cik:str, date:str=todays_date):
     return gvkey 
 
 
-
 def get_ratings_df() -> pd.DataFrame:
     # This block is here to get info on the universe of stocks we are going to scrape
     ratings_df = pd.read_csv('https://github.com/Brandt-moreThan4/Data/blob/main/bond_ratings.csv?raw=true') 
@@ -103,3 +98,14 @@ def get_ratings_df() -> pd.DataFrame:
 
 
 
+def filing_in_drive(filing, df_log:pd.DataFrame) -> bool:
+    """Returns True if the filing has already been uploaded to the drive."""
+
+    log_successes = df_log[df_log.success == True]
+
+    # We consider the file uploaded if we have a record with matching accession number and gvkey
+    # gvkey needs to be converted to same format as log gvkeys. Which is string, without zero padding
+    if filing.accession_number in log_successes['accession_number'].values and str(int(filing.gvkey)) in log_successes['gvkey'].values:
+        return True
+    else:
+        return False

@@ -1,4 +1,5 @@
 sec-edgar-filings/
+logs/
 
 # small local test file for sanity checks
 sanity_check.py
