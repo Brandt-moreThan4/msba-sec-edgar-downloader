@@ -1,5 +1,6 @@
 sec-edgar-filings/
-logs/
+scraper/logs/
+scraper/data
 
 # small local test file for sanity checks
 sanity_check.py
